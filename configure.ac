@@ -5,10 +5,6 @@ AC_CONFIG_LIBOBJ_DIR(openbsd-compat)
 AC_PROG_CC
 AC_USE_SYSTEM_EXTENSIONS
 
-AC_ARG_WITH([libbsd],
-	AS_HELP_STRING([--with-libbsd],
-		[Build with libbsd library (default: disabled)]))
-
 AC_REPLACE_FUNCS([ \
 	asprintf \
 	getprogname \
