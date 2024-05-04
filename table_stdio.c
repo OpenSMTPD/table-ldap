@@ -34,6 +34,12 @@ static int (*handler_lookup)(int, struct dict *, const char *, char *, size_t);
 static int (*handler_fetch)(int, struct dict *, char *, size_t);
 
 static char		 tablename[128];
+/*
+ * backword compatibility:
+ * register all the services since we don't have a clue yet what the
+ * table will do
+ */
+static int		 registered_services = K_ANY;
 
 /* Dummy; just kept for backward compatibility */
 static struct dict	 params;
@@ -61,6 +67,29 @@ service_id(const char *service)
 		return (K_MAILADDRMAP);
 
 	errx(1, "unknown service %s", service);
+}
+
+static char *
+table_api_service_name(enum table_service s)
+{
+        switch (s) {
+        case K_ALIAS:           return "alias";
+        case K_DOMAIN:          return "domain";
+        case K_CREDENTIALS:     return "credentials";
+        case K_NETADDR:         return "netaddr";
+        case K_USERINFO:        return "userinfo";
+        case K_SOURCE:          return "source";
+        case K_MAILADDR:        return "mailaddr";
+        case K_ADDRNAME:        return "addrname";
+        case K_MAILADDRMAP:     return "mailaddrmap";
+        }
+        return "???";
+}
+
+void
+table_api_register_services(int s)
+{
+	registered_services = K_ANY & s;
 }
 
 void
@@ -101,7 +130,7 @@ table_api_dispatch(void)
 	char		*line = NULL;
 	size_t		 linesize = 0;
 	ssize_t		 linelen;
-	int		 i, r, configured = 0;
+	int		 sid, r, configured = 0;
 
 	dict_init(&params);
 
@@ -118,20 +147,9 @@ table_api_dispatch(void)
 			if (!strcmp(t, "ready")) {
 				configured = 1;
 
-				/*
-				 * XXX register all the services since
-				 * we don't have a clue what the table
-				 * will do.
-				 */
-				puts("register|alias");
-				puts("register|domain");
-				puts("register|credentials");
-				puts("register|netaddr");
-				puts("register|userinfo");
-				puts("register|source");;
-				puts("register|mailaddr");
-				puts("register|addrname");
-				puts("register|mailaddrmap");
+				for (int s = K_ALIAS; s <= K_MAILADDRMAP; s <<= 1) {
+					printf("register|%s\n", table_api_service_name(s));
+				}
 
 				puts("register|ready");
 				if (fflush(stdout) == EOF)
@@ -187,15 +205,19 @@ table_api_dispatch(void)
 		if ((t = strchr(t, '|')) == NULL)
 			errx(1, "malformed line: missing service");
 		*t++ = '\0';
+		sid = service_id(service);
 
 		id = t;
 
+		r = -1;
 		if (!strcmp(type, "fetch")) {
 			if (handler_fetch == NULL)
 				errx(1, "no fetch handler registered");
 
-			r = handler_fetch(service_id(service), &params,
-			    buf, sizeof(buf));
+			if (registered_services & sid) {
+				r = handler_fetch(sid, &params,
+				    buf, sizeof(buf));
+			}
 			if (r == 1)
 				printf("fetch-result|%s|found|%s\n", id, buf);
 			else if (r == 0)
@@ -216,7 +238,9 @@ table_api_dispatch(void)
 		if (!strcmp(type, "check")) {
 			if (handler_check == NULL)
 				errx(1, "no check handler registered");
-			r = handler_check(service_id(service), &params, key);
+			if (registered_services & sid) {
+				r = handler_check(sid, &params, key);
+			}
 			if (r == 1)
 				printf("check-result|%s|found\n", id);
 			else if (r == 0)
@@ -226,8 +250,10 @@ table_api_dispatch(void)
 		} else if (!strcmp(type, "lookup")) {
 			if (handler_lookup == NULL)
 				errx(1, "no lookup handler registered");
-			r = handler_lookup(service_id(service), &params, key,
-			    buf, sizeof(buf));
+			if (registered_services & sid) {
+				r = handler_lookup(sid, &params, key,
+				    buf, sizeof(buf));
+			}
 			if (r == 1)
 				printf("lookup-result|%s|found|%s\n", id, buf);
 			else if (r == 0)

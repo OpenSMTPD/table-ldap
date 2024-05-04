@@ -28,6 +28,7 @@ enum table_service {
 	K_ANY =		0xfff,
 };
 
+void		 table_api_register_services(int);
 void		 table_api_on_update(int(*)(void));
 void		 table_api_on_check(int(*)(int, struct dict *, const char *));
 void		 table_api_on_lookup(int(*)(int, struct dict *, const char *, char *, size_t));
