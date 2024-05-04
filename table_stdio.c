@@ -73,18 +73,18 @@ service_id(const char *service)
 static char *
 table_api_service_name(enum table_service s)
 {
-        switch (s) {
-        case K_ALIAS:           return "alias";
-        case K_DOMAIN:          return "domain";
-        case K_CREDENTIALS:     return "credentials";
-        case K_NETADDR:         return "netaddr";
-        case K_USERINFO:        return "userinfo";
-        case K_SOURCE:          return "source";
-        case K_MAILADDR:        return "mailaddr";
-        case K_ADDRNAME:        return "addrname";
-        case K_MAILADDRMAP:     return "mailaddrmap";
+	switch (s) {
+	case K_ALIAS:		return "alias";
+	case K_DOMAIN:		return "domain";
+	case K_CREDENTIALS:	return "credentials";
+	case K_NETADDR:		return "netaddr";
+	case K_USERINFO:	return "userinfo";
+	case K_SOURCE:		return "source";
+	case K_MAILADDR:	return "mailaddr";
+	case K_ADDRNAME:	return "addrname";
+	case K_MAILADDRMAP:	return "mailaddrmap";
 	default:		return "???";
-        }
+	}
 }
 
 void
