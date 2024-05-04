@@ -15,6 +15,10 @@ AC_REPLACE_FUNCS([ \
 	strtonum \
 ])
 
+AC_SEARCH_LIBS([event_init], [event], [], [
+	AC_MSG_ERROR([requires libevent])
+])
+
 AC_SEARCH_LIBS([tls_init], [tls], [], [
 	AC_MSG_ERROR([requires libtls])
 ])
