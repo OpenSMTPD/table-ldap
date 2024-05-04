@@ -34,6 +34,7 @@ static int (*handler_lookup)(int, struct dict *, const char *, char *, size_t);
 static int (*handler_fetch)(int, struct dict *, char *, size_t);
 
 static char		 tablename[128];
+
 /*
  * backword compatibility:
  * register all the services since we don't have a clue yet what the
@@ -82,8 +83,8 @@ table_api_service_name(enum table_service s)
         case K_MAILADDR:        return "mailaddr";
         case K_ADDRNAME:        return "addrname";
         case K_MAILADDRMAP:     return "mailaddrmap";
+	default:		return "???";
         }
-        return "???";
 }
 
 void
