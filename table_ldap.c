@@ -237,6 +237,7 @@ ldap_config(void)
 	ssize_t		 flen;
 	FILE		*fp;
 	char		*key, *value, *buf = NULL;
+	int		 services = 0;
 
 	if ((fp = fopen(config, "r")) == NULL) {
 		log_warn("warn: \"%s\"", config);
@@ -278,44 +279,56 @@ ldap_config(void)
 			read_value(&basedn, key, value);
 		else if (!strcmp(key, "ca_file"))
 			read_value(&ca_file, key, value);
-		else if (!strcmp(key, "alias_filter"))
+		else if (!strcmp(key, "alias_filter")) {
 			read_value(&queries[LDAP_ALIAS].filter, key, value);
-		else if (!strcmp(key, "alias_attributes")) {
+			services |= K_ALIAS;
+		} else if (!strcmp(key, "alias_attributes")) {
 			ldap_parse_attributes(&queries[LDAP_ALIAS],
 			    key, value, 1);
-		} else if (!strcmp(key, "credentials_filter"))
+		} else if (!strcmp(key, "credentials_filter")) {
 			read_value(&queries[LDAP_CREDENTIALS].filter, key, value);
-		else if (!strcmp(key, "credentials_attributes")) {
+			services |= K_CREDENTIALS;
+		} else if (!strcmp(key, "credentials_attributes")) {
 			ldap_parse_attributes(&queries[LDAP_CREDENTIALS],
 			    key, value, 2);
-		} else if (!strcmp(key, "domain_filter"))
+		} else if (!strcmp(key, "domain_filter")) {
 			read_value(&queries[LDAP_DOMAIN].filter, key, value);
-		else if (!strcmp(key, "domain_attributes")) {
+			services |= K_DOMAIN;
+		} else if (!strcmp(key, "domain_attributes")) {
 			ldap_parse_attributes(&queries[LDAP_DOMAIN],
 			    key, value, 1);
-		} else if (!strcmp(key, "userinfo_filter"))
+		} else if (!strcmp(key, "userinfo_filter")) {
 			read_value(&queries[LDAP_USERINFO].filter, key, value);
-		else if (!strcmp(key, "userinfo_attributes")) {
+			services |= K_USERINFO;
+		} else if (!strcmp(key, "userinfo_attributes")) {
 			ldap_parse_attributes(&queries[LDAP_USERINFO],
 			    key, value, 3);
-		} else if (!strcmp(key, "mailaddr_filter"))
+		} else if (!strcmp(key, "mailaddr_filter")) {
 			read_value(&queries[LDAP_MAILADDR].filter, key, value);
-		else if (!strcmp(key, "mailaddr_attributes")) {
+			services |= K_MAILADDR;
+		} else if (!strcmp(key, "mailaddr_attributes")) {
 			ldap_parse_attributes(&queries[LDAP_MAILADDR],
 			    key, value, 1);
-		} else if (!strcmp(key, "mailaddrmap_filter"))
+		} else if (!strcmp(key, "mailaddrmap_filter")) {
 			read_value(&queries[LDAP_MAILADDRMAP].filter, key, value);
-		else if (!strcmp(key, "mailaddrmap_attributes")) {
+			services |= K_MAILADDRMAP;
+		} else if (!strcmp(key, "mailaddrmap_attributes")) {
 			ldap_parse_attributes(&queries[LDAP_MAILADDRMAP],
 			    key, value, 1);
-		} else if (!strcmp(key, "netaddr_filter"))
+		} else if (!strcmp(key, "netaddr_filter")) {
 			read_value(&queries[LDAP_NETADDR].filter, key, value);
-		else if (!strcmp(key, "netaddr_attributes")) {
+			services |= K_NETADDR;
+		} else if (!strcmp(key, "netaddr_attributes")) {
 			ldap_parse_attributes(&queries[LDAP_NETADDR],
 			    key, value, 1);
 		} else
 			log_warnx("warn: bogus entry \"%s\"", key);
 	}
+
+	if (!services) {
+		log_warnx("warn: no service registered");
+	}
+	table_api_register_services(services);
 
 	free(buf);
 	fclose(fp);
