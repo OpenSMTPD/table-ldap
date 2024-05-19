@@ -22,12 +22,35 @@
 
 #include <err.h>
 #include <limits.h>
+#include <stdbool.h>
+#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 
+#include <event.h>
+
 #include "dict.h"
+#include "log.h"
 #include "table_stdio.h"
 
+enum table_operation {
+	O_UPDATE,
+	O_CHECK,
+	O_LOOKUP,
+	O_FETCH,
+};
+
+struct request {
+	enum	 table_operation o;
+	char	*table;
+	enum	 table_service s;
+	char	*key;
+};
+
+static void (*handler_async_update)(const char *, const char *);
+static void (*handler_async_check)(const char *, const char *, int, const char *);
+static void (*handler_async_lookup)(const char *, const char *, int, const char *);
+static void (*handler_async_fetch)(const char *, const char *, int);
 static int (*handler_update)(void);
 static int (*handler_check)(int, struct dict *, const char *);
 static int (*handler_lookup)(int, struct dict *, const char *, char *, size_t);
@@ -44,6 +67,8 @@ static int		 registered_services = K_ANY;
 
 /* Dummy; just kept for backward compatibility */
 static struct dict	 params;
+static struct dict	 requests;
+static struct dict	 lookup_entries;
 
 static int
 service_id(const char *service)
@@ -87,6 +112,81 @@ table_api_service_name(enum table_service s)
 	}
 }
 
+static void
+fallback_update_handler(const char *id, const char *tname)
+{
+	int r;
+	strlcpy(tablename, tname, sizeof(tablename));
+
+	if (handler_update == NULL)
+		errx(1, "no update handler registered");
+
+	r = handler_update();
+	if (r == 1)
+		table_api_update_finish(id);
+	else
+		table_api_error(id, NULL);
+}
+
+static void
+fallback_check_handler(const char *id, const char *tname, int service, const char *key)
+{
+	int r;
+	strlcpy(tablename, tname, sizeof(tablename));
+
+	if (handler_check == NULL)
+		errx(1, "no check handler registered");
+
+	r = handler_check(service, &params, key);
+	if (r == 0 || r == 1)
+		table_api_check_result(id, r == 1);
+	else
+		table_api_error(id, NULL);
+}
+
+static void
+fallback_lookup_handler(const char *id, const char *tname, int service, const char *key)
+{
+	char buf[LINE_MAX];
+	int r;
+	strlcpy(tablename, tname, sizeof(tablename));
+
+	if (handler_lookup == NULL)
+		errx(1, "no lookup handler registered");
+
+	r = handler_lookup(service, &params, key, buf, sizeof(buf));
+	if (r == 1) {
+		table_api_lookup_result(id, buf);
+	}
+	if (r == 1 || r == 0)
+		table_api_lookup_finish(id);
+	else
+		table_api_error(id, NULL);
+}
+
+static void
+fallback_fetch_handler(const char *id, const char *tname, int service)
+{
+	char buf[LINE_MAX];
+	int r;
+	strlcpy(tablename, tname, sizeof(tablename));
+
+	if (handler_fetch == NULL)
+		errx(1, "no fetch handler registered");
+
+	r = handler_fetch(service, &params, buf, sizeof(buf));
+	switch(r) {
+	case 1:
+		table_api_fetch_result(id, buf);
+		break;
+	case 0:
+		table_api_fetch_result(id, NULL);
+		break;
+	default:
+		table_api_error(id, NULL);
+	}
+}
+
 void
 table_api_register_services(int s)
 {
@@ -100,9 +200,21 @@ table_api_on_update(int(*cb)(void))
 }
 
 void
+table_api_on_update_async(void(*cb)(const char *, const char *))
+{
+	handler_async_update = cb;
+}
+
+void
 table_api_on_check(int(*cb)(int, struct dict *, const char *))
 {
 	handler_check = cb;
+}
+
+void
+table_api_on_check_async(void(*cb)(const char *, const char *, int, const char *))
+{
+	handler_async_check = cb;
 }
 
 void
@@ -112,9 +224,21 @@ table_api_on_lookup(int(*cb)(int, struct dict  *, const char *, char *, size_t))
 }
 
 void
+table_api_on_lookup_async(void(*cb)(const char *, const char *, int, const char *))
+{
+	handler_async_lookup = cb;
+}
+
+void
 table_api_on_fetch(int(*cb)(int, struct dict *, char *, size_t))
 {
 	handler_fetch = cb;
+}
+
+void
+table_api_on_fetch_async(void(*cb)(const char *, const char *, int))
+{
+	handler_async_fetch = cb;
 }
 
 const char *
@@ -124,9 +248,11 @@ table_api_get_name(void)
 }
 
 void
+
 table_api_error(const char *id, const char *error)
 {
 	struct request  *req;
+	struct evbuffer	*res;
 
 	req = dict_pop(&requests, id);
 
@@ -162,6 +288,189 @@ table_api_error(const char *id, const char *error)
 #endif
 	if (fflush(stdout) == EOF)
 		err(1, "fflush");
+	free(req);
+	res = dict_pop(&lookup_entries, id);
+	if (res)
+		evbuffer_free(res);
+}
+
+void
+table_api_update_finish(const char *id)
+{
+	struct request	*req;
+
+	req = dict_get(&requests, id);
+
+	if (!req) {
+		log_warnx("%s: unknow id %s", __func__, id);
+		return;
+	}
+
+	if (req->o != O_UPDATE) {
+		table_api_error(id, NULL);
+		return;
+	}
+
+	dict_pop(&requests, id);
+	free(req->table);
+	free(req);
+
+	printf("update-result|%s|ok\n", id);
+	if (fflush(stdout) == EOF)
+		err(1, "fflush");
+}
+
+void
+table_api_check_result(const char *id, bool found)
+{
+	struct request	*req;
+
+	req = dict_get(&requests, id);
+
+	if (!req) {
+		log_warnx("%s: unknow id %s", __func__, id);
+		return;
+	}
+
+	if (req->o != O_CHECK) {
+		table_api_error(id, NULL);
+		return;
+	}
+
+	dict_pop(&requests, id);
+	free(req->table);
+	free(req->key);
+	free(req);
+
+	if (found)
+		printf("check-result|%s|found\n", id);
+	else
+		printf("check-result|%s|not-found\n", id);
+
+	if (fflush(stdout) == EOF)
+		err(1, "fflush");
+}
+
+void
+table_api_lookup_result(const char *id, const char *buf)
+{
+	const char alias_sep[] = ", ";
+	struct request	*req;
+	struct evbuffer *res;
+
+	req = dict_get(&requests, id);
+
+	if (!req) {
+		log_warnx("%s: unknow id %s", __func__, id);
+		return;
+	}
+
+	if (req->o != O_LOOKUP) {
+		table_api_error(id, NULL);
+		return;
+	}
+
+	res = dict_get(&lookup_entries, id);
+
+	if (!res) {
+		res = evbuffer_new();
+		if (!res) {
+			table_api_error(id, "can not alloc result");
+			return;
+		}
+		if (evbuffer_add(res, buf, strlen(buf)) == -1) {
+			table_api_error(id, "can not alloc result");
+			return;
+		}
+		dict_set(&lookup_entries, id, res);
+		return;
+	}
+	switch(req->s) {
+	case K_ALIAS:
+		if (evbuffer_add(res, alias_sep, sizeof(alias_sep)-1) == -1) {
+			table_api_error(id, "can not extend result");
+			return;
+		}
+		if (evbuffer_add(res, buf, 0) == -1) {
+			table_api_error(id, "can not extend result");
+			return;
+		}
+		break;
+	default:
+		log_warnx("id: %s lookup result override", id);
+		evbuffer_drain(res, evbuffer_get_length(res));
+		if (evbuffer_add(res, buf, sizeof(buf)) == -1) {
+			table_api_error(id, "can not alloc result");
+			return;
+		}
+	}
+}
+
+void
+table_api_lookup_finish(const char *id)
+{
+	struct request	*req;
+	struct evbuffer	*res;
+
+	req = dict_get(&requests, id);
+	if (!req) {
+		log_warnx("%s: unknow id %s", __func__, id);
+		return;
+	}
+	if (req->o != O_LOOKUP) {
+		table_api_error(id, NULL);
+		return;
+	}
+
+	res = dict_get(&lookup_entries, id);
+	if (res && evbuffer_get_length(res)) {
+		if (evbuffer_add(res, "\0", 1) == -1) {
+			table_api_error(id, "can not extend result");
+			return;
+		}
+		printf("lookup-result|%s|found|%s\n", id, evbuffer_pullup(res, -1));
+	} else {
+		printf("lookup-result|%s|not-found\n", id);
+	}
+
+	if (fflush(stdout) == EOF)
+		err(1, "fflush");
+	dict_pop(&requests, id);
+	free(req->table);
+	free(req->key);
+	free(req);
+	res = dict_pop(&lookup_entries, id);
+	if (res)
+		evbuffer_free(res);
+}
+
+void
+table_api_fetch_result(const char *id, const char *buf)
+{
+	struct request	*req;
+
+	req = dict_get(&requests, id);
+
+	if (!req) {
+		log_warnx("%s: unknow id %s", __func__, id);
+		return;
+	}
+
+	if (req->o != O_FETCH) {
+		table_api_error(id, NULL);
+		return;
+	}
+
+	if (buf && *buf)
+		printf("fetch-result|%s|found|%s\n", id, buf);
+	else
+		printf("fetch-result|%s|not-found\n", id);
+
+	if (fflush(stdout) == EOF)
+		err(1, "fflush");
+	dict_pop(&requests, id);
+	free(req->table);
+	free(req);
 }
 
 static void
@@ -170,6 +479,7 @@ handle_request(char *line, size_t linelen)
 	char		 buf[LINE_MAX];
 	char		*t, *vers, *tname, *type, *service, *id, *key;
 	int		 sid, r;
+	struct request	 *req = calloc(1, sizeof(*req));
 
 	t = line;
 	(void) linelen;
@@ -195,7 +505,7 @@ handle_request(char *line, size_t linelen)
 	if ((t = strchr(t, '|')) == NULL)
 		errx(1, "malformed line: missing table name");
 	*t++ = '\0';
-	strlcpy(tablename, tname, sizeof(tablename));
+	req->table = strdup(tname);
 
 	type = t;
 	if ((t = strchr(t, '|')) == NULL)
@@ -203,15 +513,14 @@ handle_request(char *line, size_t linelen)
 	*t++ = '\0';
 
 	if (!strcmp(type, "update")) {
-		if (handler_update == NULL)
+		if (handler_async_update == NULL)
 			errx(1, "no update handler registered");
 
 		id = t;
-		r = handler_update();
-		printf("update-result|%s|%s\n", id,
-		    r == -1 ? "error" : "ok");
-		if (fflush(stdout) == EOF)
-			err(1, "fflush");
+		req->o = O_UPDATE;
+		dict_set(&requests, id, req);
+
+		handler_async_update(id, tname);
 		return;
 	}
 
@@ -225,22 +534,20 @@ handle_request(char *line, size_t linelen)
 
 	r = -1;
 	if (!strcmp(type, "fetch")) {
-		if (handler_fetch == NULL)
+		if (handler_async_fetch == NULL)
 			errx(1, "no fetch handler registered");
 
-		if (registered_services & sid) {
-			r = handler_fetch(sid, &params,
-			    buf, sizeof(buf));
+		if (!(registered_services & sid)) {
+			printf("check-result|%s|error\n", id);
+			if (fflush(stdout) == EOF)
+				err(1, "fflush");
+			return;
 		}
-		if (r == 1)
-			printf("fetch-result|%s|found|%s\n", id, buf);
-		else if (r == 0)
-			printf("fetch-result|%s|not-found\n", id);
-		else
-			printf("fetch-result|%s|error\n", id);
-		if (fflush(stdout) == EOF)
-			err(1, "fflush");
-		memset(buf, 0, sizeof(buf));
+		req->o = O_FETCH;
+		req->s = sid;
+		req->key = NULL;
+		dict_set(&requests, id, req);
+		handler_async_fetch(id, tname, sid);
 		return;
 	}
 
@@ -250,31 +557,35 @@ handle_request(char *line, size_t linelen)
 	key = t;
 
 	if (!strcmp(type, "check")) {
-		if (handler_check == NULL)
+		if (handler_async_check == NULL)
 			errx(1, "no check handler registered");
-		if (registered_services & sid) {
-			r = handler_check(sid, &params, key);
-		}
-		if (r == 1)
-			printf("check-result|%s|found\n", id);
-		else if (r == 0)
-			printf("check-result|%s|not-found\n", id);
-		else
+		if (!(registered_services & sid)) {
 			printf("check-result|%s|error\n", id);
-	} else if (!strcmp(type, "lookup")) {
-		if (handler_lookup == NULL)
-			errx(1, "no lookup handler registered");
-		if (registered_services & sid) {
-			r = handler_lookup(sid, &params, key,
-			    buf, sizeof(buf));
+			if (fflush(stdout) == EOF)
+				err(1, "fflush");
+			return;
 		}
-		if (r == 1)
-			printf("lookup-result|%s|found|%s\n", id, buf);
-		else if (r == 0)
-			printf("lookup-result|%s|not-found\n", id);
-		else
+		req->o = O_CHECK;
+		req->s = sid;
+		req->key = strdup(key);
+		dict_set(&requests, id, req);
+		handler_async_check(id, tname, sid, key);
+		return;
+	} else if (!strcmp(type, "lookup")) {
+		if (handler_async_lookup == NULL)
+			errx(1, "no lookup handler registered");
+		if (!(registered_services & sid)) {
 			printf("lookup-result|%s|error\n", id);
-		memset(buf, 0, sizeof(buf));
+			if (fflush(stdout) == EOF)
+				err(1, "fflush");
+			return;
+		}
+		req->o = O_LOOKUP;
+		req->s = sid;
+		req->key = strdup(key);
+		dict_set(&requests, id, req);
+		handler_async_lookup(id, tname, sid, key);
+		return;
 	} else
 		errx(1, "unknown action %s", type);
 
@@ -292,6 +603,17 @@ table_api_dispatch(void)
 	int		 configured = 0;
 
 	dict_init(&params);
+	dict_init(&requests);
+	dict_init(&lookup_entries);
+
+	if (!handler_async_update)
+		table_api_on_update_async(fallback_update_handler);
+	if (!handler_async_check)
+		table_api_on_check_async(fallback_check_handler);
+	if (!handler_async_lookup)
+		table_api_on_lookup_async(fallback_lookup_handler);
+	if (!handler_async_fetch)
+		table_api_on_fetch_async(fallback_fetch_handler);
 
 	while ((linelen = getline(&line, &linesize, stdin)) != -1) {
 		if (line[linelen - 1] == '\n')

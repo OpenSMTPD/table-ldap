@@ -30,9 +30,18 @@ enum table_service {
 
 void		 table_api_register_services(int);
 void		 table_api_on_update(int(*)(void));
+void		 table_api_on_update_async(void(*)(const char *, const char *));
 void		 table_api_on_check(int(*)(int, struct dict *, const char *));
+void		 table_api_on_check_async(void(*)(const char *, const char *, int, const char *));
 void		 table_api_on_lookup(int(*)(int, struct dict *, const char *, char *, size_t));
+void		 table_api_on_lookup_async(void(*)(const char *, const char *, int, const char *));
 void		 table_api_on_fetch(int(*)(int, struct dict *, char *, size_t));
+void		 table_api_on_fetch_async(void(*)(const char *, const char *, int));
 int		 table_api_dispatch(void);
 void		 table_api_error(const char *, const char *);
+void		 table_api_update_finish(const char *);
+void		 table_api_check_result(const char *, bool);
+void		 table_api_lookup_result(const char *, const char *);
+void		 table_api_lookup_finish(const char *);
+void		 table_api_fetch_result(const char *, const char *);
 const char	*table_api_get_name(void);
