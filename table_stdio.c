@@ -123,15 +123,132 @@ table_api_get_name(void)
 	return tablename;
 }
 
-int
-table_api_dispatch(void)
+static void
+handle_request(char *line, size_t linelen)
 {
 	char		 buf[LINE_MAX];
 	char		*t, *vers, *tname, *type, *service, *id, *key;
+	int		 sid, r;
+
+	t = line;
+	(void) linelen;
+
+	if (strncmp(t, "table|", 6))
+		errx(1, "malformed line");
+	t += 6;
+
+	vers = t;
+	if ((t = strchr(t, '|')) == NULL)
+		errx(1, "malformed line: missing version");
+	*t++ = '\0';
+
+	if (strcmp(vers, "0.1") != 0)
+		errx(1, "unsupported protocol version: %s", vers);
+
+	/* skip timestamp */
+	if ((t = strchr(t, '|')) == NULL)
+		errx(1, "malformed line: missing timestamp");
+	*t++ = '\0';
+
+	tname = t;
+	if ((t = strchr(t, '|')) == NULL)
+		errx(1, "malformed line: missing table name");
+	*t++ = '\0';
+	strlcpy(tablename, tname, sizeof(tablename));
+
+	type = t;
+	if ((t = strchr(t, '|')) == NULL)
+		errx(1, "malformed line: missing type");
+	*t++ = '\0';
+
+	if (!strcmp(type, "update")) {
+		if (handler_update == NULL)
+			errx(1, "no update handler registered");
+
+		id = t;
+		r = handler_update();
+		printf("update-result|%s|%s\n", id,
+		    r == -1 ? "error" : "ok");
+		if (fflush(stdout) == EOF)
+			err(1, "fflush");
+		return;
+	}
+
+	service = t;
+	if ((t = strchr(t, '|')) == NULL)
+		errx(1, "malformed line: missing service");
+	*t++ = '\0';
+	sid = service_id(service);
+
+	id = t;
+
+	r = -1;
+	if (!strcmp(type, "fetch")) {
+		if (handler_fetch == NULL)
+			errx(1, "no fetch handler registered");
+
+		if (registered_services & sid) {
+			r = handler_fetch(sid, &params,
+			    buf, sizeof(buf));
+		}
+		if (r == 1)
+			printf("fetch-result|%s|found|%s\n", id, buf);
+		else if (r == 0)
+			printf("fetch-result|%s|not-found\n", id);
+		else
+			printf("fetch-result|%s|error\n", id);
+		if (fflush(stdout) == EOF)
+			err(1, "fflush");
+		memset(buf, 0, sizeof(buf));
+		return;
+	}
+
+	if ((t = strchr(t, '|')) == NULL)
+		errx(1, "malformed line: missing key");
+	*t++ = '\0';
+	key = t;
+
+	if (!strcmp(type, "check")) {
+		if (handler_check == NULL)
+			errx(1, "no check handler registered");
+		if (registered_services & sid) {
+			r = handler_check(sid, &params, key);
+		}
+		if (r == 1)
+			printf("check-result|%s|found\n", id);
+		else if (r == 0)
+			printf("check-result|%s|not-found\n", id);
+		else
+			printf("check-result|%s|error\n", id);
+	} else if (!strcmp(type, "lookup")) {
+		if (handler_lookup == NULL)
+			errx(1, "no lookup handler registered");
+		if (registered_services & sid) {
+			r = handler_lookup(sid, &params, key,
+			    buf, sizeof(buf));
+		}
+		if (r == 1)
+			printf("lookup-result|%s|found|%s\n", id, buf);
+		else if (r == 0)
+			printf("lookup-result|%s|not-found\n", id);
+		else
+			printf("lookup-result|%s|error\n", id);
+		memset(buf, 0, sizeof(buf));
+	} else
+		errx(1, "unknown action %s", type);
+
+	if (fflush(stdout) == EOF)
+		err(1, "fflush");
+}
+
+int
+table_api_dispatch(void)
+{
+	char		*t;
 	char		*line = NULL;
 	size_t		 linesize = 0;
 	ssize_t		 linelen;
-	int		 sid, r, configured = 0;
+	int		 configured = 0;
 
 	dict_init(&params);
 
@@ -161,112 +278,7 @@ table_api_dispatch(void)
 			continue;
 		}
 
-		if (strncmp(t, "table|", 6))
-			errx(1, "malformed line");
-		t += 6;
-
-		vers = t;
-		if ((t = strchr(t, '|')) == NULL)
-			errx(1, "malformed line: missing version");
-		*t++ = '\0';
-
-		if (strcmp(vers, "0.1") != 0)
-			errx(1, "unsupported protocol version: %s", vers);
-
-		/* skip timestamp */
-		if ((t = strchr(t, '|')) == NULL)
-			errx(1, "malformed line: missing timestamp");
-		*t++ = '\0';
-
-		tname = t;
-		if ((t = strchr(t, '|')) == NULL)
-			errx(1, "malformed line: missing table name");
-		*t++ = '\0';
-		strlcpy(tablename, tname, sizeof(tablename));
-
-		type = t;
-		if ((t = strchr(t, '|')) == NULL)
-			errx(1, "malformed line: missing type");
-		*t++ = '\0';
-
-		if (!strcmp(type, "update")) {
-			if (handler_update == NULL)
-				errx(1, "no update handler registered");
-
-			id = t;
-			r = handler_update();
-			printf("update-result|%s|%s\n", id,
-			    r == -1 ? "error" : "ok");
-			if (fflush(stdout) == EOF)
-				err(1, "fflush");
-			continue;
-		}
-
-		service = t;
-		if ((t = strchr(t, '|')) == NULL)
-			errx(1, "malformed line: missing service");
-		*t++ = '\0';
-		sid = service_id(service);
-
-		id = t;
-
-		r = -1;
-		if (!strcmp(type, "fetch")) {
-			if (handler_fetch == NULL)
-				errx(1, "no fetch handler registered");
-
-			if (registered_services & sid) {
-				r = handler_fetch(sid, &params,
-				    buf, sizeof(buf));
-			}
-			if (r == 1)
-				printf("fetch-result|%s|found|%s\n", id, buf);
-			else if (r == 0)
-				printf("fetch-result|%s|not-found\n", id);
-			else
-				printf("fetch-result|%s|error\n", id);
-			if (fflush(stdout) == EOF)
-				err(1, "fflush");
-			memset(buf, 0, sizeof(buf));
-			continue;
-		}
-
-		if ((t = strchr(t, '|')) == NULL)
-			errx(1, "malformed line: missing key");
-		*t++ = '\0';
-		key = t;
-
-		if (!strcmp(type, "check")) {
-			if (handler_check == NULL)
-				errx(1, "no check handler registered");
-			if (registered_services & sid) {
-				r = handler_check(sid, &params, key);
-			}
-			if (r == 1)
-				printf("check-result|%s|found\n", id);
-			else if (r == 0)
-				printf("check-result|%s|not-found\n", id);
-			else
-				printf("check-result|%s|error\n", id);
-		} else if (!strcmp(type, "lookup")) {
-			if (handler_lookup == NULL)
-				errx(1, "no lookup handler registered");
-			if (registered_services & sid) {
-				r = handler_lookup(sid, &params, key,
-				    buf, sizeof(buf));
-			}
-			if (r == 1)
-				printf("lookup-result|%s|found|%s\n", id, buf);
-			else if (r == 0)
-				printf("lookup-result|%s|not-found\n", id);
-			else
-				printf("lookup-result|%s|error\n", id);
-			memset(buf, 0, sizeof(buf));
-		} else
-			errx(1, "unknown action %s", type);
-
-		if (fflush(stdout) == EOF)
-			err(1, "fflush");
+		handle_request(t, linelen);
 	}
 
 	if (ferror(stdin))
