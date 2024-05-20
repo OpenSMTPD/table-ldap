@@ -31,7 +31,7 @@
 
 #include "dict.h"
 #include "log.h"
-#include "table_stdio.h"
+#include "table_api.h"
 
 enum table_operation {
 	O_UPDATE,

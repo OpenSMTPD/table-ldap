@@ -34,7 +34,7 @@
 #include "aldap.h"
 #include "dict.h"
 #include "log.h"
-#include "table_stdio.h"
+#include "table_api.h"
 #include "util.h"
 
 #ifndef MAXIMUM
