@@ -476,9 +476,8 @@ table_api_fetch_result(const char *id, const char *buf)
 static void
 handle_request(char *line, size_t linelen)
 {
-	char		 buf[LINE_MAX];
 	char		*t, *vers, *tname, *type, *service, *id, *key;
-	int		 sid, r;
+	int		 sid;
 	struct request	 *req = calloc(1, sizeof(*req));
 
 	t = line;
@@ -532,7 +531,6 @@ handle_request(char *line, size_t linelen)
 
 	id = t;
 
-	r = -1;
 	if (!strcmp(type, "fetch")) {
 		if (handler_async_fetch == NULL)
 			errx(1, "no fetch handler registered");
@@ -588,9 +586,6 @@ handle_request(char *line, size_t linelen)
 		return;
 	} else
 		errx(1, "unknown action %s", type);
-
-	if (fflush(stdout) == EOF)
-		err(1, "fflush");
 }
 
 int
