@@ -15,6 +15,12 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#if defined(__clang__) || defined(__GNUC__)
+#define DEPRECATED __attribute__((deprecated))
+#else
+#define DEPRECATED
+#endif
+
 enum table_service {
 	K_ALIAS =	0x001,	/* returns struct expand	*/
 	K_DOMAIN =	0x002,	/* returns struct destination	*/
@@ -29,11 +35,11 @@ enum table_service {
 };
 
 void		 table_api_register_services(int);
-void		 table_api_on_update(int(*)(void));
+void		 table_api_on_update(int(*)(void)) DEPRECATED;
 void		 table_api_on_update_async(void(*)(const char *, const char *));
-void		 table_api_on_check(int(*)(int, struct dict *, const char *));
+void		 table_api_on_check(int(*)(int, struct dict *, const char *)) DEPRECATED;
 void		 table_api_on_check_async(void(*)(const char *, const char *, int, const char *));
-void		 table_api_on_lookup(int(*)(int, struct dict *, const char *, char *, size_t));
+void		 table_api_on_lookup(int(*)(int, struct dict *, const char *, char *, size_t)) DEPRECATED;
 void		 table_api_on_lookup_async(void(*)(const char *, const char *, int, const char *));
 void		 table_api_on_fetch(int(*)(int, struct dict *, char *, size_t));
 void		 table_api_on_fetch_async(void(*)(const char *, const char *, int));
