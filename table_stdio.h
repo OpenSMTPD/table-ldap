@@ -34,4 +34,5 @@ void		 table_api_on_check(int(*)(int, struct dict *, const char *));
 void		 table_api_on_lookup(int(*)(int, struct dict *, const char *, char *, size_t));
 void		 table_api_on_fetch(int(*)(int, struct dict *, char *, size_t));
 int		 table_api_dispatch(void);
+void		 table_api_error(const char *, const char *);
 const char	*table_api_get_name(void);

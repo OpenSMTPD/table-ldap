@@ -123,6 +123,47 @@ table_api_get_name(void)
 	return tablename;
 }
 
+void
+table_api_error(const char *id, const char *error)
+{
+	struct request  *req;
+
+	req = dict_pop(&requests, id);
+
+	if (!req) {
+		log_warnx("%s: unknow id %s", __func__, id);
+		return;
+	}
+
+	switch(req->o) {
+	case O_UPDATE:
+		printf("update-result|%s|error", id);
+		break;
+	case O_CHECK:
+		printf("check-result|%s|error", id);
+		break;
+	case O_LOOKUP:
+		printf("lookup-result|%s|error", id);
+		break;
+	case O_FETCH:
+		printf("fetch-result|%s|error", id);
+		break;
+	}
+
+#ifdef errormassage
+	if (error) {
+		printf("|%s\n", error);
+	} else {
+		puts("|unknown");
+	}
+#else
+	(void)error;
+	puts("");
+#endif
+	if (fflush(stdout) == EOF)
+		err(1, "fflush");
+}
+
 static void
 handle_request(char *line, size_t linelen)
 {
