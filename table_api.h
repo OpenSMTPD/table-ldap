@@ -21,6 +21,15 @@
 #define DEPRECATED
 #endif
 
+typedef void (*fd_callback)(int, short);
+
+enum table_operation {
+	O_UPDATE,
+	O_CHECK,
+	O_LOOKUP,
+	O_FETCH,
+};
+
 enum table_service {
 	K_ALIAS =	0x001,	/* returns struct expand	*/
 	K_DOMAIN =	0x002,	/* returns struct destination	*/
@@ -34,6 +43,15 @@ enum table_service {
 	K_ANY =		0xfff,
 };
 
+struct request {
+	char	*id;
+	enum	 table_operation o;
+	char	*table;
+	enum	 table_service s;
+	char	*key;
+};
+
+bool		 table_api_parse_line(char *line, size_t linelen, struct request *req);
 void		 table_api_register_services(int);
 void		 table_api_on_update(int(*)(void)) DEPRECATED;
 void		 table_api_on_update_async(void(*)(const char *, const char *));
@@ -44,10 +62,13 @@ void		 table_api_on_lookup_async(void(*)(const char *, const char *, int, const 
 void		 table_api_on_fetch(int(*)(int, struct dict *, char *, size_t));
 void		 table_api_on_fetch_async(void(*)(const char *, const char *, int));
 int		 table_api_dispatch(void);
-void		 table_api_error(const char *, const char *);
+void		 table_api_error(const char *, enum table_operation, const char *);
 void		 table_api_update_finish(const char *);
 void		 table_api_check_result(const char *, bool);
-void		 table_api_lookup_result(const char *, const char *);
+void		 table_api_lookup_result(const char *, enum table_service, const char *);
 void		 table_api_lookup_finish(const char *);
 void		 table_api_fetch_result(const char *, const char *);
 const char	*table_api_get_name(void);
+void		 table_api_register_fd(int fd, short events, fd_callback cb);
+void		 table_api_replace_fd(int old, int new);
+void		 table_api_remove_fd(int fd);
