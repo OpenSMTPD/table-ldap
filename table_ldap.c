@@ -351,7 +351,7 @@ ldap_open(void)
 		goto err;
 	}
 
-	if ((amsg = aldap_parse(aldap)) == NULL) {
+	if ((amsg = aldap_parse(aldap, true)) == NULL) {
 		log_warnx("warn: aldap_parse");
 		goto err;
 	}
@@ -441,7 +441,7 @@ ldap_query(const char *filter, const char *key, char **attributes, size_t attrn,
 			pg = NULL;
 		}
 
-		while ((m = aldap_parse(aldap)) != NULL) {
+		while ((m = aldap_parse(aldap, true)) != NULL) {
 			if (aldap->msgid != m->msgid)
 				goto end;
 			if (m->message_type == LDAP_RES_SEARCH_RESULT) {

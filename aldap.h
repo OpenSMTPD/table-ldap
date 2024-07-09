@@ -33,6 +33,9 @@ struct aldap {
 #define ALDAP_ERR_INVALID_FILTER	2
 #define ALDAP_ERR_OPERATION_FAILED	3
 #define ALDAP_ERR_TLS_ERROR		4
+#define ALDAP_ERR_NEED_POLLOUT		5
+#define ALDAP_ERR_NEED_POLLIN		6
+#define ALDAP_ERR_NOMEM			7
 	u_int8_t	err;
 	int		msgid;
 	struct ber	ber;
@@ -211,7 +214,7 @@ struct aldap		*aldap_init(int);
 int			 aldap_tls(struct aldap *, struct tls_config *,
 			    const char *);
 int			 aldap_close(struct aldap *);
-struct aldap_message	*aldap_parse(struct aldap *);
+struct aldap_message	*aldap_parse(struct aldap *, bool);
 void			 aldap_freemsg(struct aldap_message *);
 
 int	 		 aldap_req_starttls(struct aldap *);

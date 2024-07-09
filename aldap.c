@@ -24,7 +24,9 @@
 #include <ctype.h>
 #include <errno.h>
 #include <inttypes.h>
+#include <poll.h>
 #include <string.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <tls.h>
 #include <unistd.h>
@@ -138,6 +140,7 @@ aldap_send(struct aldap *ldap, struct ber_element *root)
 	char *data;
 	size_t len, done;
 	ssize_t error, wrote;
+	struct pollfd pfd = {ldap->fd, 0, 0};
 
 	len = ober_calc_len(root);
 	error = ober_write_elements(&ldap->ber, root);
@@ -149,16 +152,34 @@ aldap_send(struct aldap *ldap, struct ber_element *root)
 	done = 0;
 	data = ptr;
 	while (len > 0) {
+		if (pfd.events) {
+			/* TODO handle errors and timeout */
+			poll(&pfd, 1, -1);
+		}
+		pfd.events = 0;
+
 		if (ldap->tls != NULL) {
 			wrote = tls_write(ldap->tls, data + done, len);
-			if (wrote == TLS_WANT_POLLIN ||
-			    wrote == TLS_WANT_POLLOUT)
+			switch (wrote) {
+			case TLS_WANT_POLLIN:
+				pfd.events = POLLIN;
 				continue;
+			case TLS_WANT_POLLOUT:
+				pfd.events = POLLOUT;
+				continue;
+			default:
+				break;
+			}
 		} else
 			wrote = write(ldap->fd, data + done, len);
 
-		if (wrote == -1)
+		if (wrote == -1) {
+			if (errno == EAGAIN || errno == EWOULDBLOCK) {
+				pfd.events = POLLOUT;
+				continue;
+			}
 			return -1;
+		}
 
 		len -= wrote;
 		done += wrote;
@@ -354,7 +375,7 @@ fail:
 }
 
 struct aldap_message *
-aldap_parse(struct aldap *ldap)
+aldap_parse(struct aldap *ldap, bool blocking)
 {
 	int			 class;
 	unsigned int		 type;
@@ -363,26 +384,54 @@ aldap_parse(struct aldap *ldap)
 	struct ber_element	*a = NULL, *ep;
 	char			 rbuf[512];
 	int			 ret, retry;
+	struct pollfd		 pfd = {ldap->fd, 0, 0};
 
 	if ((m = calloc(1, sizeof(struct aldap_message))) == NULL)
-		return NULL;
+		goto opfail;
 
 	retry = 0;
 	while (m->msg == NULL) {
 		if (retry || EVBUFFER_LENGTH(ldap->buf) == 0) {
+			if (pfd.events) {
+				/* TODO handle errors and timeout */
+				poll(&pfd, 1, -1);
+			}
+			pfd.events = 0;
+
 			if (ldap->tls) {
 				ret = tls_read(ldap->tls, rbuf, sizeof(rbuf));
-				if (ret == TLS_WANT_POLLIN ||
-				    ret == TLS_WANT_POLLOUT)
-					continue;
+				switch (ret) {
+				case TLS_WANT_POLLOUT:
+					if (blocking) {
+						pfd.events = POLLOUT;
+						continue;
+					}
+					goto epollout;
+				case TLS_WANT_POLLIN:
+					if (blocking) {
+						pfd.events = POLLIN;
+						continue;
+					}
+					goto epollin;
+				default:
+					break;
+				}
 			} else
 				ret = read(ldap->fd, rbuf, sizeof(rbuf));
 
+			if (ret == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+				if (blocking) {
+					pfd.events = POLLIN;
+					continue;
+				}
+				goto epollin;
+			}
 			if (ret <= 0) {
-				goto parsefail;
+				goto opfail;
 			}
 
-			evbuffer_add(ldap->buf, rbuf, ret);
+			if (evbuffer_add(ldap->buf, rbuf, ret) == -1)
+				goto enomem;
 		}
 
 		if (EVBUFFER_LENGTH(ldap->buf) > 0) {
@@ -452,9 +501,27 @@ aldap_parse(struct aldap *ldap)
 	}
 
 	return m;
+
 parsefail:
 	evbuffer_drain(ldap->buf, EVBUFFER_LENGTH(ldap->buf));
 	ldap->err = ALDAP_ERR_PARSER_ERROR;
+	aldap_freemsg(m);
+	return NULL;
+opfail:
+	evbuffer_drain(ldap->buf, EVBUFFER_LENGTH(ldap->buf));
+	ldap->err = ALDAP_ERR_OPERATION_FAILED;
+	aldap_freemsg(m);
+	return NULL;
+enomem:
+	ldap->err = ALDAP_ERR_NOMEM;
+	aldap_freemsg(m);
+	return NULL;
+epollin:
+	ldap->err = ALDAP_ERR_NEED_POLLIN;
+	aldap_freemsg(m);
+	return NULL;
+epollout:
+	ldap->err = ALDAP_ERR_NEED_POLLOUT;
 	aldap_freemsg(m);
 	return NULL;
 }
