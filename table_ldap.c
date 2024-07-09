@@ -24,11 +24,13 @@
 #include <netinet/in.h>
 #include <netdb.h>
 
+#include <ber.h>
 #include <ctype.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <tls.h>
 #include <unistd.h>
 
 #include "aldap.h"

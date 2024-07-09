@@ -20,11 +20,13 @@
 #include "compat.h"
 
 #include <arpa/inet.h>
+#include <ber.h>
 #include <ctype.h>
 #include <errno.h>
 #include <inttypes.h>
 #include <string.h>
 #include <stdlib.h>
+#include <tls.h>
 #include <unistd.h>
 
 #include <event.h>

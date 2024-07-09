@@ -17,10 +17,6 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <ber.h>
-#include <stdio.h>
-#include <tls.h>
-
 #define LDAP_URL 		"ldap://"
 #define LDAPS_URL 		"ldaps://"
 #define LDAPTLS_URL 		"ldap+tls://"
