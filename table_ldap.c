@@ -581,7 +581,7 @@ end:
 			for (k = 0; res[i].v[j][k]; k++) {
 				free(res[i].v[j][k]);
 			}
-			free(res[i].v[i]);
+			free(res[i].v[j]);
 		}
 	}
 	free(res);
