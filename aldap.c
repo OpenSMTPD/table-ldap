@@ -567,6 +567,8 @@ aldap_parse_page_control(struct ber_element *control, size_t len)
 void
 aldap_freepage(struct aldap_page_control *page)
 {
+	if (!page)
+		return;
 	free(page->cookie);
 	free(page);
 }
@@ -574,7 +576,7 @@ aldap_freepage(struct aldap_page_control *page)
 void
 aldap_freemsg(struct aldap_message *msg)
 {
-	if (msg->msg)
+	if (msg && msg->msg)
 		ober_free_elements(msg->msg);
 	free(msg);
 }
@@ -755,21 +757,23 @@ notfound:
 	return (-1);
 }
 
-int
+void
 aldap_free_attr(struct aldap_stringset *values)
 {
 	if (values == NULL)
-		return -1;
+		return;
 
 	free(values->str);
 	free(values);
 
-	return (1);
+	return;
 }
 
 void
 aldap_free_url(struct aldap_url *lu)
 {
+	if (!lu)
+		return;
 	free(lu->buffer);
 }
 

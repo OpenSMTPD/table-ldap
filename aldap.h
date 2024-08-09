@@ -241,7 +241,7 @@ int	 aldap_first_attr(struct aldap_message *, char **, struct
 	    aldap_stringset **);
 int	 aldap_next_attr(struct aldap_message *, char **,
 	    struct aldap_stringset **);
-int	 aldap_free_attr(struct aldap_stringset *);
+void	 aldap_free_attr(struct aldap_stringset *);
 
 struct aldap_page_control *aldap_parse_page_control(struct ber_element *, size_t len);
 void	 aldap_freepage(struct aldap_page_control *);
