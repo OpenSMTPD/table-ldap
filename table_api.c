@@ -565,6 +565,18 @@ table_api_parse_line(char *line, size_t linelen, struct request *req)
 	}
 }
 
+void
+table_api_free_request(struct request *r)
+{
+	if (!r)
+		return;
+
+	free(r->id);
+	free(r->table);
+	free(r->key);
+	free(r);
+}
+
 static void
 do_callbacks(struct request *req)
 {

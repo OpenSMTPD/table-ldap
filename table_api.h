@@ -55,6 +55,7 @@ struct request {
 };
 
 bool		 table_api_parse_line(char *line, size_t linelen, struct request *req);
+void		 table_api_free_request(struct request *req);
 void		 table_api_register_services(int);
 void		 table_api_on_update(int(*)(void)) DEPRECATED;
 void		 table_api_on_update_async(void(*)(const char *, const char *));
