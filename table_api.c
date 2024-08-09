@@ -478,7 +478,13 @@ table_api_parse_line(char *line, size_t linelen, struct request *req)
 		return false;
 	}
 	*t++ = '\0';
-	req->table = strdup(tname);
+	if (t - tname - 1 > (ptrdiff_t)req->tablesize) {
+		req->table = realloc(req->table, t - tname - 1);
+		req->tablesize = t - tname - 1;
+		if (!req->table)
+			fatal("realloc");
+	}
+	memcpy(req->table, tname, req->tablesize);
 
 	type = t;
 	if ((t = strchr(t, '|')) == NULL) {
@@ -488,7 +494,13 @@ table_api_parse_line(char *line, size_t linelen, struct request *req)
 	*t++ = '\0';
 
 	if (!strcmp(type, "update")) {
-		req->id = strdup(t);
+		if (line + linelen - t > (ptrdiff_t)req->idsize) {
+			req->id = realloc(req->id, line + linelen - t);
+			req->idsize = line + linelen - t;
+			if (!req->id)
+				fatal("realloc");
+		}
+		memcpy(req->id, t, line + linelen - t);
 		req->o = O_UPDATE;
 		return true;
 	}
@@ -504,7 +516,13 @@ table_api_parse_line(char *line, size_t linelen, struct request *req)
 	id = t;
 
 	if (!strcmp(type, "fetch")) {
-		req->id = strdup(id);
+		if (line + linelen - id > (ptrdiff_t)req->idsize) {
+			req->id = realloc(req->id, line + linelen - id);
+			req->idsize = line + linelen - id;
+			if (!req->id)
+				fatal("realloc");
+		}
+		memcpy(req->id, id, line + linelen - id);
 		req->o = O_FETCH;
 		req->s = sid;
 		req->key = NULL;
@@ -516,19 +534,30 @@ table_api_parse_line(char *line, size_t linelen, struct request *req)
 		return false;
 	}
 	*t++ = '\0';
+	if (t - id - 1 > (ptrdiff_t)req->idsize) {
+		req->id = realloc(req->id, t - id - 1);
+		req->idsize = t - id - 1;
+		if (!req->id)
+			fatal("realloc");
+	}
+	memcpy(req->id, id, t - id - 1);
+
 	key = t;
+	if (line + linelen - key > (ptrdiff_t)req->keysize) {
+		req->key = realloc(req->key, line + linelen - key);
+		req->keysize = line + linelen - key;
+		if (!req->key)
+			fatal("realloc");
+	}
+	memcpy(req->key, key, line + linelen - key);
 
 	if (!strcmp(type, "check")) {
-		req->id = strdup(id);
 		req->o = O_CHECK;
 		req->s = sid;
-		req->key = strdup(key);
 		return true;
 	} else if (!strcmp(type, "lookup")) {
-		req->id = strdup(id);
 		req->o = O_LOOKUP;
 		req->s = sid;
-		req->key = strdup(key);
 		return true;
 	} else {
 		log_warnx("unknown action %s", type);
@@ -573,7 +602,7 @@ api_callback(int fd, short revents)
 	size_t		 linelen;
 	int		 serrno, ret;
 	char		*line, *t;
-	struct request	req;
+	struct request	 req = {0};
 
 	if (revents & (POLLERR|POLLNVAL)) {
 		exit(1);
@@ -607,8 +636,6 @@ api_callback(int fd, short revents)
 				errx(1, "can not parse input line: %s", line);
 			}
 			do_callbacks(&req);
-			free(req.table);
-			free(req.id);
 			free(line);
 			continue;
 		}

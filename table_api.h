@@ -45,10 +45,13 @@ enum table_service {
 
 struct request {
 	char	*id;
+	size_t	 idsize;
 	enum	 table_operation o;
 	char	*table;
+	size_t	 tablesize;
 	enum	 table_service s;
 	char	*key;
+	size_t	 keysize;
 };
 
 bool		 table_api_parse_line(char *line, size_t linelen, struct request *req);
