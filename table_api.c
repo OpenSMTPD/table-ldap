@@ -1,6 +1,7 @@
 /*	$OpenBSD$	*/
 
 /*
+ * Copyright (c) Philipp Takacs <philipp@bureaucracy.de>
  * Copyright (c) 2024 Omar Polo <op@openbsd.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
@@ -40,10 +41,7 @@
 #define MAXFDS 16
 #endif
 
-static void (*handler_async_update)(const char *, const char *);
-static void (*handler_async_check)(const char *, const char *, int, const char *);
-static void (*handler_async_lookup)(const char *, const char *, int, const char *);
-static void (*handler_async_fetch)(const char *, const char *, int);
+static void (*handler_async)(struct request *);
 static int (*handler_update)(void);
 static int (*handler_check)(int, struct dict *, const char *);
 static int (*handler_lookup)(int, struct dict *, const char *, char *, size_t);
@@ -200,21 +198,9 @@ table_api_on_update(int(*cb)(void))
 }
 
 void
-table_api_on_update_async(void(*cb)(const char *, const char *))
-{
-	handler_async_update = cb;
-}
-
-void
 table_api_on_check(int(*cb)(int, struct dict *, const char *))
 {
 	handler_check = cb;
-}
-
-void
-table_api_on_check_async(void(*cb)(const char *, const char *, int, const char *))
-{
-	handler_async_check = cb;
 }
 
 void
@@ -224,21 +210,15 @@ table_api_on_lookup(int(*cb)(int, struct dict  *, const char *, char *, size_t))
 }
 
 void
-table_api_on_lookup_async(void(*cb)(const char *, const char *, int, const char *))
-{
-	handler_async_lookup = cb;
-}
-
-void
 table_api_on_fetch(int(*cb)(int, struct dict *, char *, size_t))
 {
 	handler_fetch = cb;
 }
 
 void
-table_api_on_fetch_async(void(*cb)(const char *, const char *, int))
+table_api_on_request(void(*cb)(struct request *))
 {
-	handler_async_fetch = cb;
+	handler_async = cb;
 }
 
 const char *
@@ -248,7 +228,6 @@ table_api_get_name(void)
 }
 
 void
-
 table_api_error(const char *id, enum table_operation o, const char *error)
 {
 	struct evbuffer	*res;
@@ -422,6 +401,17 @@ table_api_replace_fd(int old, int new)
 }
 
 void
+table_api_fd_set_events(int fd, short events)
+{
+	for (size_t i = 0; i < nfds; i++) {
+		if (fds[i].fd != fd)
+			continue;
+		fds[i].events = events;
+		return;
+	}
+}
+
+void
 table_api_remove_fd(int fd)
 {
 	for (nfds_t i = 1; i < nfds; i++) {
@@ -437,7 +427,6 @@ table_api_remove_fd(int fd)
 	}
 }
 
-/* TODO rename to table_api_parse_line() or so */
 bool
 table_api_parse_line(char *line, size_t linelen, struct request *req)
 {
@@ -578,32 +567,41 @@ table_api_free_request(struct request *r)
 }
 
 static void
-do_callbacks(struct request *req)
+do_callback(struct request *req)
 {
+	struct request *r;
 	switch (req->o) {
 	case O_UPDATE:
-		if (!handler_async_update) {
-			table_api_error(req->id, req->o, "update not implemented");
+		if (handler_update) {
+			fallback_update_handler(req->id, req->table);
+			return;
 		}
-		handler_async_update(req->id, req->table);
+		break;
 	case O_CHECK:
-		if (!handler_async_check) {
-			table_api_error(req->id, req->o, "check not implemented");
+		if (handler_check) {
+			fallback_check_handler(req->id, req->table, req->s, req->key);
+			return;
 		}
-		handler_async_check(req->id, req->table, req->s, req->key);
+		break;
 	case O_LOOKUP:
-		if (!handler_async_lookup) {
-			table_api_error(req->id, req->o, "lookup not implemented");
+		if (handler_lookup) {
+			fallback_lookup_handler(req->id, req->table, req->s, req->key);
+			return;
 		}
-		handler_async_lookup(req->id, req->table, req->s, req->key);
+		break;
 	case O_FETCH:
-		if (!handler_async_fetch) {
-			table_api_error(req->id, req->o, "fetch not implemented");
+		if (handler_fetch) {
+			fallback_fetch_handler(req->id, req->table, req->s);
+			return;
 		}
-		handler_async_fetch(req->id, req->table, req->s);
+		break;
 	default:
-		errx(1, "unknow operation, not implemented");
+		break;
 	}
+
+	r = malloc(sizeof(*r));
+	*r = *req;
+	handler_async(r);
 }
 
 static void
@@ -647,7 +645,7 @@ api_callback(int fd, short revents)
 			if (!table_api_parse_line(line, linelen, &req)) {
 				errx(1, "can not parse input line: %s", line);
 			}
-			do_callbacks(&req);
+			do_callback(&req);
 			free(line);
 			continue;
 		}
@@ -681,14 +679,7 @@ table_api_dispatch(void)
 	dict_init(&params);
 	dict_init(&lookup_entries);
 
-	if (!handler_async_update)
-		table_api_on_update_async(fallback_update_handler);
-	if (!handler_async_check)
-		table_api_on_check_async(fallback_check_handler);
-	if (!handler_async_lookup)
-		table_api_on_lookup_async(fallback_lookup_handler);
-	if (!handler_async_fetch)
-		table_api_on_fetch_async(fallback_fetch_handler);
+	inbuffer = evbuffer_new();
 
 	flags = fcntl(STDIN_FILENO, F_GETFL, 0);
 	fcntl(STDIN_FILENO, F_SETFL, flags | O_NONBLOCK);
