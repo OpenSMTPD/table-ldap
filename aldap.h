@@ -221,7 +221,7 @@ int	 		 aldap_req_starttls(struct aldap *);
 
 int	 aldap_bind(struct aldap *, char *, char *);
 int	 aldap_unbind(struct aldap *);
-int	 aldap_search(struct aldap *, char *, enum scope, const char *, const char *, char **, int, int, int, struct aldap_page_control *);
+int	 aldap_search(struct aldap *, char *, enum scope, const char *, const char *, char * const *, int, int, int, struct aldap_page_control *);
 int	 aldap_get_errno(struct aldap *, const char **);
 
 int	 aldap_get_resultcode(struct aldap_message *);
@@ -235,7 +235,7 @@ int	 aldap_search_url(struct aldap *, char *, int, int, int,
 	    struct aldap_page_control *);
 
 int	 aldap_count_attrs(struct aldap_message *);
-int	 aldap_match_attr(struct aldap_message *, char *,
+int	 aldap_match_attr(const struct aldap_message *, char *,
 	    struct aldap_stringset **);
 int	 aldap_first_attr(struct aldap_message *, char **, struct
 	    aldap_stringset **);

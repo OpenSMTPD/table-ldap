@@ -279,7 +279,7 @@ fail:
 
 int
 aldap_search(struct aldap *ldap, char *basedn, enum scope scope, const char *filter,
-    const char *key, char **attrs, int typesonly, int sizelimit, int timelimit,
+    const char *key, char * const *attrs, int typesonly, int sizelimit, int timelimit,
     struct aldap_page_control *page)
 {
 	struct ber_element *root = NULL, *ber, *c;
@@ -724,7 +724,7 @@ notfound:
 }
 
 int
-aldap_match_attr(struct aldap_message *msg, char *inkey,
+aldap_match_attr(const struct aldap_message *msg, char *inkey,
     struct aldap_stringset **outvalues)
 {
 	struct ber_element *a, *b;
