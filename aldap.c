@@ -285,8 +285,10 @@ aldap_search(struct aldap *ldap, char *basedn, enum scope scope, const char *fil
 	struct ber_element *root = NULL, *ber, *c;
 	int i;
 
-	if ((root = ober_add_sequence(NULL)) == NULL)
+	if ((root = ober_add_sequence(NULL)) == NULL) {
+		ldap->err = ALDAP_ERR_OPERATION_FAILED;
 		goto fail;
+	}
 
 	ber = ober_printf_elements(root, "d{t", ++ldap->msgid, BER_CLASS_APP,
 	    LDAP_REQ_SEARCH);
@@ -309,8 +311,10 @@ aldap_search(struct aldap *ldap, char *basedn, enum scope scope, const char *fil
 		goto fail;
 	}
 
-	if ((ber = ober_add_sequence(ber)) == NULL)
+	if ((ber = ober_add_sequence(ber)) == NULL) {
+		ldap->err = ALDAP_ERR_OPERATION_FAILED;
 		goto fail;
+	}
 	if (attrs != NULL)
 		for (i = 0; attrs[i] != NULL; i++) {
 			if ((ber = ober_add_string(ber, attrs[i])) == NULL)
