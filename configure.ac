@@ -15,7 +15,7 @@ AC_REPLACE_FUNCS([ \
 	strtonum \
 ])
 
-AC_SEARCH_LIBS([event_init], [event], [], [
+AC_SEARCH_LIBS([evbuffer_pullup], [event_core], [], [
 	AC_MSG_ERROR([requires libevent])
 ])
 
