@@ -43,13 +43,13 @@
 
 static int	ober_dump_element(struct ber *ber, struct ber_element *root);
 static void	ober_dump_header(struct ber *ber, struct ber_element *root);
-static void	ober_putc(struct ber *ber, u_char c);
+static void	ober_putc(struct ber *ber, unsigned char c);
 static void	ober_write(struct ber *ber, void *buf, size_t len);
 static ssize_t	get_id(struct ber *b, unsigned int *tag, int *class,
     int *cstruct);
 static ssize_t	get_len(struct ber *b, ssize_t *len);
 static ssize_t	ober_read_element(struct ber *ber, struct ber_element *elm);
-static ssize_t	ober_getc(struct ber *b, u_char *c);
+static ssize_t	ober_getc(struct ber *b, unsigned char *c);
 static ssize_t	ober_read(struct ber *ber, void *buf, size_t len);
 
 #ifdef DEBUG
@@ -157,7 +157,7 @@ ober_add_enumerated(struct ber_element *prev, long long val)
 {
 	struct ber_element *elm;
 	u_int i, len = 0;
-	u_char cur, last = 0;
+	unsigned char cur, last = 0;
 
 	if ((elm = ober_get_element(BER_TYPE_ENUMERATED)) == NULL)
 		return NULL;
@@ -186,7 +186,7 @@ ober_add_integer(struct ber_element *prev, long long val)
 {
 	struct ber_element *elm;
 	u_int i, len = 0;
-	u_char cur, last = 0;
+	unsigned char cur, last = 0;
 
 	if ((elm = ober_get_element(BER_TYPE_INTEGER)) == NULL)
 		return NULL;
@@ -1107,7 +1107,7 @@ ober_dump_element(struct ber *ber, struct ber_element *root)
 static void
 ober_dump_header(struct ber *ber, struct ber_element *root)
 {
-	u_char	id = 0, t, buf[5];
+	unsigned char	id = 0, t, buf[5];
 	unsigned int type;
 	size_t size;
 
@@ -1153,7 +1153,7 @@ ober_dump_header(struct ber *ber, struct ber_element *root)
 }
 
 static void
-ober_putc(struct ber *ber, u_char c)
+ober_putc(struct ber *ber, unsigned char c)
 {
 	if (ber->br_wptr + 1 <= ber->br_wend)
 		*ber->br_wptr = c;
@@ -1174,7 +1174,7 @@ ober_write(struct ber *ber, void *buf, size_t len)
 static ssize_t
 get_id(struct ber *b, unsigned int *tag, int *class, int *cstruct)
 {
-	u_char u;
+	unsigned char u;
 	size_t i = 0;
 	unsigned int t = 0;
 
@@ -1217,7 +1217,7 @@ get_id(struct ber *b, unsigned int *tag, int *class, int *cstruct)
 static ssize_t
 get_len(struct ber *b, ssize_t *len)
 {
-	u_char	u, n;
+	unsigned char	u, n;
 	ssize_t	s, r;
 
 	if (ober_getc(b, &u) == -1)
@@ -1274,7 +1274,7 @@ ober_read_element(struct ber *ber, struct ber_element *elm)
 	unsigned int type;
 	int i, class, cstruct, elements = 0;
 	ssize_t len, r, totlen = 0;
-	u_char c, last = 0;
+	unsigned char c, last = 0;
 
 	if ((r = get_id(ber, &type, &class, &cstruct)) == -1)
 		return -1;
@@ -1384,7 +1384,7 @@ ober_read_element(struct ber *ber, struct ber_element *elm)
 		elm->be_free = 1;
 		elm->be_len = len;
 		ober_read(ber, elm->be_val, len);
-		((u_char *)elm->be_val)[len] = '\0';
+		((unsigned char *)elm->be_val)[len] = '\0';
 		break;
 	case BER_TYPE_NULL:	/* no payload */
 		if (len != 0) {
@@ -1434,7 +1434,7 @@ ober_read_element(struct ber *ber, struct ber_element *elm)
 }
 
 static ssize_t
-ober_getc(struct ber *b, u_char *c)
+ober_getc(struct ber *b, unsigned char *c)
 {
 	return ober_read(b, c, 1);
 }

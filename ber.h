@@ -47,12 +47,12 @@ struct ber_element {
 
 struct ber {
 	off_t	 br_offs;
-	u_char	*br_wbuf;
-	u_char	*br_wptr;
-	u_char	*br_wend;
-	u_char	*br_rbuf;
-	u_char	*br_rptr;
-	u_char	*br_rend;
+	unsigned char	*br_wbuf;
+	unsigned char	*br_wptr;
+	unsigned char	*br_wend;
+	unsigned char	*br_rbuf;
+	unsigned char	*br_rptr;
+	unsigned char	*br_rend;
 
 	unsigned int	(*br_application)(struct ber_element *);
 };
