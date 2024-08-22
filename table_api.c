@@ -22,6 +22,7 @@
 #include <sys/tree.h>
 
 #include <err.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
 #include <poll.h>
