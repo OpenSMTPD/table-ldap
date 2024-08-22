@@ -32,7 +32,7 @@ struct ber_element {
 	size_t			 be_len;
 	off_t			 be_offs;
 	int			 be_free;
-	u_int8_t		 be_class;
+	uint8_t		 be_class;
 	void			(*be_cb)(void *, size_t);
 	void			*be_cbarg;
 	union {
@@ -85,7 +85,7 @@ struct ber {
 #define BER_MAX_SEQ_ELEMENTS	USHRT_MAX	/* 65535 */
 
 struct ber_oid {
-	u_int32_t	bo_id[BER_MAX_OID_LEN + 1];
+	uint32_t	bo_id[BER_MAX_OID_LEN + 1];
 	size_t		bo_n;
 };
 
@@ -128,7 +128,7 @@ struct ber_element	*ober_add_oid(struct ber_element *, struct ber_oid *);
 struct ber_element	*ober_add_noid(struct ber_element *, struct ber_oid *, int);
 struct ber_element	*ober_add_oidstring(struct ber_element *, const char *);
 int			 ober_get_oid(struct ber_element *, struct ber_oid *);
-size_t			 ober_oid2ber(struct ber_oid *, u_int8_t *, size_t);
+size_t			 ober_oid2ber(struct ber_oid *, uint8_t *, size_t);
 int			 ober_string2oid(const char *, struct ber_oid *);
 struct ber_element	*ober_printf_elements(struct ber_element *, char *, ...);
 int			 ober_scanf_elements(struct ber_element *, char *, ...);

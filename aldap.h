@@ -36,7 +36,7 @@ struct aldap {
 #define ALDAP_ERR_NEED_POLLOUT		5
 #define ALDAP_ERR_NEED_POLLIN		6
 #define ALDAP_ERR_NOMEM			7
-	u_int8_t	err;
+	uint8_t	err;
 	int		msgid;
 	struct ber	ber;
 
