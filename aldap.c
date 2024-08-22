@@ -19,6 +19,8 @@
 
 #include "compat.h"
 
+#include <sys/types.h>
+
 #include <arpa/inet.h>
 #include <ber.h>
 #include <ctype.h>
