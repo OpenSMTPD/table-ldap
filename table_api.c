@@ -46,9 +46,9 @@
 
 static void (*handler_async)(struct request *);
 static int (*handler_update)(void);
-static int (*handler_check)(int, struct dict *, const char *);
-static int (*handler_lookup)(int, struct dict *, const char *, char *, size_t);
-static int (*handler_fetch)(int, struct dict *, char *, size_t);
+static int (*handler_check)(int, const char *);
+static int (*handler_lookup)(int, const char *, char *, size_t);
+static int (*handler_fetch)(int, char *, size_t);
 
 static nfds_t		 nfds;
 static struct pollfd	 fds[MAXFDS];
@@ -68,7 +68,6 @@ static char		 tablename[128];
 static int		 registered_services = K_ANY;
 
 /* Dummy; just kept for backward compatibility */
-static struct dict	 params;
 static struct dict	 lookup_entries;
 
 static int
@@ -138,7 +137,7 @@ fallback_check_handler(const char *id, const char *tname, int service, const cha
 	if (handler_check == NULL)
 		errx(1, "no check handler registered");
 
-	r = handler_check(service, &params, key);
+	r = handler_check(service, key);
 	if (r == 0 || r == 1)
 		table_api_check_result(id, r == 1);
 	else
@@ -155,7 +154,7 @@ fallback_lookup_handler(const char *id, const char *tname, int service, const ch
 	if (handler_lookup == NULL)
 		errx(1, "no lookup handler registered");
 
-	r = handler_lookup(service, &params, key, buf, sizeof(buf));
+	r = handler_lookup(service,key, buf, sizeof(buf));
 	if (r == 1) {
 		table_api_lookup_result(id, service, buf);
 	}
@@ -175,7 +174,7 @@ fallback_fetch_handler(const char *id, const char *tname, int service)
 	if (handler_fetch == NULL)
 		errx(1, "no fetch handler registered");
 
-	r = handler_fetch(service, &params, buf, sizeof(buf));
+	r = handler_fetch(service, buf, sizeof(buf));
 	switch(r) {
 	case 1:
 		table_api_fetch_result(id, buf);
@@ -201,19 +200,19 @@ table_api_on_update(int(*cb)(void))
 }
 
 void
-table_api_on_check(int(*cb)(int, struct dict *, const char *))
+table_api_on_check(int(*cb)(int, const char *))
 {
 	handler_check = cb;
 }
 
 void
-table_api_on_lookup(int(*cb)(int, struct dict  *, const char *, char *, size_t))
+table_api_on_lookup(int(*cb)(int, const char *, char *, size_t))
 {
 	handler_lookup = cb;
 }
 
 void
-table_api_on_fetch(int(*cb)(int, struct dict *, char *, size_t))
+table_api_on_fetch(int(*cb)(int, char *, size_t))
 {
 	handler_fetch = cb;
 }
@@ -682,7 +681,6 @@ table_api_dispatch(void)
 	int	 serrno, r;
 	int flags;
 
-	dict_init(&params);
 	dict_init(&lookup_entries);
 
 	inbuffer = evbuffer_new();
