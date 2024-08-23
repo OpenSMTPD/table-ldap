@@ -249,16 +249,12 @@ table_api_error(const char *id, enum table_operation o, const char *error)
 		break;
 	}
 
-#ifdef errormassage
 	if (error && *error) {
 		printf("|%s\n", error);
 	} else {
 		puts("|unknown");
 	}
-#else
-	(void)error;
-	puts("");
-#endif
+
 	if (fflush(stdout) == EOF)
 		err(1, "fflush");
 	res = dict_pop(&lookup_entries, id);
