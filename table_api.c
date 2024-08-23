@@ -602,7 +602,10 @@ do_callback(struct request *req)
 		break;
 	}
 
-	r = malloc(sizeof(*r));
+	if ((r = malloc(sizeof(*r))) == NULL) {
+		table_api_error(req->id, req->o, "malloc failed");
+		return;
+	}
 	*r = *req;
 	handler_async(r);
 }
