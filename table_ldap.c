@@ -580,6 +580,7 @@ lookup_query(int type)
 static void
 table_ldap_callback(struct request *req)
 {
+	struct aldap_filter_ctx ctx;
 	char		  ldapid[sizeof(int)*2+1];
 	int		  ret;
 	struct query	 *q = lookup_query(req->s);
@@ -614,7 +615,9 @@ table_ldap_callback(struct request *req)
 		return;
 	}
 
-	ret = aldap_search(aldap, basedn, LDAP_SCOPE_SUBTREE, q->filter, req->key, attrs, false, num, 0, NULL);
+	ctx.username = req->key;
+	ctx.hostname = req->table;
+	ret = aldap_search(aldap, basedn, LDAP_SCOPE_SUBTREE, q->filter, &ctx, attrs, false, num, 0, NULL);
 	if (ret < 0) {
 		table_api_error(req->id, req->o, NULL);
 		ldap_open();

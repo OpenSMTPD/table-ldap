@@ -43,13 +43,13 @@
 #define ALDAP_VERSION 3
 
 static struct ber_element	*ldap_parse_search_filter(struct ber_element *,
-				    const char *, const char *);
+				    const char *, const struct aldap_filter_ctx *);
 static struct ber_element	*ldap_do_parse_search_filter(
-				    struct ber_element *, const char **, const char *);
+				    struct ber_element *, const char **, const struct aldap_filter_ctx *);
 struct aldap_stringset		*aldap_get_stringset(struct ber_element *);
 char				*utoa(char *);
 static int			 isu8cont(unsigned char);
-char				*parseval(const char *, size_t, const char *);
+static char			*parseval(const char *, size_t, const struct aldap_filter_ctx *);
 int				aldap_create_page_control(struct ber_element *,
 				    int, struct aldap_page_control *);
 int				aldap_send(struct aldap *,
@@ -281,7 +281,7 @@ fail:
 
 int
 aldap_search(struct aldap *ldap, char *basedn, enum scope scope, const char *filter,
-    const char *key, char * const *attrs, int typesonly, int sizelimit, int timelimit,
+    const struct aldap_filter_ctx *ctx, char * const *attrs, int typesonly, int sizelimit, int timelimit,
     struct aldap_page_control *page)
 {
 	struct ber_element *root = NULL, *ber, *c;
@@ -308,7 +308,7 @@ aldap_search(struct aldap *ldap, char *basedn, enum scope scope, const char *fil
 		goto fail;
 	}
 
-	if ((ber = ldap_parse_search_filter(ber, filter, key)) == NULL) {
+	if ((ber = ldap_parse_search_filter(ber, filter, ctx)) == NULL) {
 		ldap->err = ALDAP_ERR_PARSER_ERROR;
 		goto fail;
 	}
@@ -967,7 +967,7 @@ aldap_get_stringset(struct ber_element *elm)
  *	NULL, parse failed
  */
 static struct ber_element *
-ldap_parse_search_filter(struct ber_element *ber, const char *filter, const char *key)
+ldap_parse_search_filter(struct ber_element *ber, const char *filter, const struct aldap_filter_ctx *ctx)
 {
 	struct ber_element *elm;
 	const char *cp;
@@ -979,7 +979,7 @@ ldap_parse_search_filter(struct ber_element *ber, const char *filter, const char
 		return (NULL);
 	}
 
-	if ((elm = ldap_do_parse_search_filter(ber, &cp, key)) == NULL)
+	if ((elm = ldap_do_parse_search_filter(ber, &cp, ctx)) == NULL)
 		return (NULL);
 
 	if (*cp != '\0') {
@@ -1009,7 +1009,7 @@ ldap_parse_search_filter(struct ber_element *ber, const char *filter, const char
  *
  */
 static struct ber_element *
-ldap_do_parse_search_filter(struct ber_element *prev, const char **cpp, const char *key)
+ldap_do_parse_search_filter(struct ber_element *prev, const char **cpp, const struct aldap_filter_ctx *ctx)
 {
 	struct ber_element *elm, *root = NULL;
 	char *parsed_val;
@@ -1042,7 +1042,7 @@ ldap_do_parse_search_filter(struct ber_element *prev, const char **cpp, const ch
 
 		while (*cp == '(') {
 			if ((elm =
-			    ldap_do_parse_search_filter(elm, &cp, key)) == NULL)
+			    ldap_do_parse_search_filter(elm, &cp, ctx)) == NULL)
 				goto bad;
 		}
 
@@ -1056,7 +1056,7 @@ ldap_do_parse_search_filter(struct ber_element *prev, const char **cpp, const ch
 		ober_set_header(root, BER_CLASS_CONTEXT, LDAP_FILT_NOT);
 
 		cp++;				/* now points to sub-filter */
-		if ((elm = ldap_do_parse_search_filter(root, &cp, key)) == NULL)
+		if ((elm = ldap_do_parse_search_filter(root, &cp, ctx)) == NULL)
 			goto bad;
 
 		if (*cp != ')')			/* trailing `)` of filter */
@@ -1147,7 +1147,7 @@ ldap_do_parse_search_filter(struct ber_element *prev, const char **cpp, const ch
 				else
 					type = LDAP_FILT_SUBS_ANY;
 
-				if ((parsed_val = parseval(attr_val, len, key)) ==
+				if ((parsed_val = parseval(attr_val, len, ctx)) ==
 				    NULL)
 					goto callfail;
 				elm = ober_add_nstring(elm, parsed_val,
@@ -1162,7 +1162,7 @@ ldap_do_parse_search_filter(struct ber_element *prev, const char **cpp, const ch
 			break;
 		}
 
-		if ((parsed_val = parseval(attr_val, len, key)) == NULL)
+		if ((parsed_val = parseval(attr_val, len, ctx)) == NULL)
 			goto callfail;
 		elm = ober_add_nstring(elm, parsed_val, strlen(parsed_val));
 		free(parsed_val);
@@ -1430,17 +1430,44 @@ isu8cont(unsigned char c)
 	return (c & (0x80 | 0x40)) == 0x80;
 }
 
+static ssize_t
+attach_param(char **buffer, size_t *size, size_t pos, const char *param)
+{
+	char *newbuffer;
+	size_t len, newsize;
+
+	if (!param) {
+		return 0;
+	}
+
+	len = strlen(param);
+	if (!len) {
+		return 0;
+	}
+
+	newsize = *size + len;
+	newbuffer = realloc(*buffer, newsize);
+	if (!newbuffer) {
+		return -1;
+	}
+	memcpy(newbuffer + pos, param, len);
+	*buffer = newbuffer;
+	*size = newsize;
+	return len;
+}
+
 /*
  * Parse a LDAP value
  * notes:
  *	the argument p should be a NUL-terminated sequence of ASCII bytes
  */
-char *
-parseval(const char *p, size_t len, const char *key)
+static char *
+parseval(const char *p, size_t len, const struct aldap_filter_ctx *ctx)
 {
 	char	 hex[3];
-	char	*buffer, *newbuffer;
-	size_t	 i, j, keylen, size, newsize;
+	char	*buffer;
+	size_t	 i, j, size;
+	ssize_t	 paramlen;
 	size = len + 1;
 
 	if ((buffer = calloc(1, size)) == NULL)
@@ -1452,37 +1479,56 @@ parseval(const char *p, size_t len, const char *key)
 			buffer[i] = (char)strtoumax(hex, NULL, 16);
 			j += 3;
 		} else if (p[j] == '%') {
-		       switch (p[j + 1]) {
-		       case '%':
-			       buffer[i] = '%';
-			       j += 2;
-			       break;
-		       case 's':
-			       if (!key) {
-				       free(buffer);
-				       return NULL;
-			       }
-			       keylen = strlen(key);
-			       if (!keylen) {
-				       j += 2;
-				       break;
-			       }
-			       newsize = size + keylen;
-			       if ((newbuffer = realloc(buffer, newsize)) == NULL) {
-				       free(buffer);
-				       return NULL;
-			       }
-			       buffer = newbuffer;
-			       size = newsize;
-			       memcpy(buffer + i, key, keylen);
-			       i += keylen - 1;
-			       j += 2;
-			       break;
-		       default:
-			       buffer[i] = '%';
-			       j++;
-			       break;
-		       }
+			switch (p[j + 1]) {
+			case '%':
+				buffer[i] = '%';
+				j += 2;
+				break;
+			case 's': /* Backwards compability */
+			case 'u': /* username */
+				if (ctx) {
+					paramlen = attach_param(&buffer, &size, i, ctx->username);
+				} else {
+					paramlen = 0;
+				}
+
+				if (paramlen == -1) {
+					free(buffer);
+					return NULL;
+				}
+
+				/* Importend
+				 * the loop increases i (the position on the output) on each iteration
+				 * but this might insert nothing
+				 * so it needs to decrease i by 1 to be on the last written position
+				 */
+				i += paramlen - 1;
+				j += 2;
+				break;
+			case 'h': /* hostname */
+				if (ctx) {
+					paramlen = attach_param(&buffer, &size, i, ctx->hostname);
+				} else {
+					paramlen = 0;
+				}
+
+				if (paramlen == -1) {
+					free(buffer);
+					return NULL;
+				}
+
+				/* Importend
+				 * the loop increases i (the position on the output) on each iteration
+				 * but this might insert nothing
+				 * so it needs to decrease i by 1 to be on the last written position
+				 */
+				i += paramlen - 1;
+				j += 2;
+				break;
+			default:
+				free(buffer);
+				return NULL;
+			}
 		} else {
 			buffer[i] = p[j];
 			j++;
