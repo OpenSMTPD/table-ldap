@@ -4,6 +4,8 @@ table_ldap_SOURCES =	table_ldap.c aldap.c ber.c dict.c log.c table_api.c util.c
 
 LDADD =			$(LIBOBJS)
 
+dist_man5_MANS =	table-ldap.5
+
 EXTRA_DIST =		aldap.h ber.h compat.h config.h.in \
 			dict.h log.h table_api.h util.h
 
