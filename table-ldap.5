@@ -138,11 +138,17 @@ then all attribute values are returned.
 The filter options are designed to allow per request
 Filters allow some specifiers in the attribute values of the filter.
 The following speciers are defined:
-.Bl -column %s -offset indent
-.It %u    The key of the request
-.It %h    The name of the table
-.It %%    The literal '%'
-.It %s    Depricated alias for the the key
+.Pp
+.Bl -tag -offset Ds -width Ds -compact
+.It Ic %u
+The key of the request.
+.It Ic %h
+The name of the table.
+.It Ic %%
+The literal
+.Sq % .
+.It Ic %s
+Depricated alias for the the key.
 .El
 .Pp
 When a not defined specier is used the filter will not work.
