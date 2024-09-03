@@ -42,37 +42,25 @@ Each table lookup will search for the matching objects.
 .Sh LDAP TABLE CONFIG FILE
 .Ss COMMON OPTIONS
 .Bl -tag -width Ds
-.It Xo
-.Ic url :
-.Ar url
-.Xc
+.It Ic url : Ar url
 This is the LDAP url which is used to connect to your LDAP server.
 For example:
 .Bd -literal -offset indent
 url: ldap://ldap.example.com
 .Ed
-.It Xo
-.Ic username :
-.Ar binddn
-.Xc
+.It Ic username : Ar binddn
 The Distinguished Name which is used to bind to the ldap server.
 For example:
 .Bd -literal -offset indent
 username: cn=smtpd,cn=sysaccounts,cn=etc,dc=example,dc=com
 .Ed
-.It Xo
-.Ic password :
-.Ar password
-.Xc
+.It Ic password : Ar password
 The password for the binddn.
 For example :
 .Bd -literal -offset indent
 password: OpenSMTPDRules!
 .Ed
-.It Xo
-.Ic basedn :
-.Ar basedn
-.Xc
+.It Ic basedn : Ar basedn
 The basedn used for each LDAP search request.
 For example:
 .Bd -literal -offset indent
@@ -83,31 +71,22 @@ basedn cn=users,cn=accounts,dc=example,dc=com
 For each service there are two options:
 A ldap filter and a list of the attributes.
 .Bl -tag -width Ds
-.It Xo
-.Ic alias_filter :
-.Ar filter
-.Xc
+.It Ic alias_filter : Ar filter
 This filter is used when the table is used in an alias (or virtual
 alias) context.
 The filter should match all entries for this particular alias.
-.It Xo
-.Ic alias_attributes :
-.Ar recipient_atribute
-.Xc
+.It Ic alias_attributes : Ar recipient_atribute
 The attribute which holds the recipients for an alias.
 When the attribute is present multible times,
 then all attribute values are returned.
-.It Xo
-.Ic credentials_filter :
-.Ar filter
-.Xc
+.It Ic credentials_filter : Ar filter
 This filter is used to look up credentials for a specific user.
 The filter should match exactly one object.
 When the filter match multible objects only the last object returned
 by the serer is used.
 .It Xo
 .Ic credentials_attributes :
-.Ar username_attribute, passwordhash_attribute
+.Ar username_attribute , passwordhash_attribute
 .Xc
 The attributes for username and password hash.
 The password hash must be encoded like the output of
@@ -116,24 +95,15 @@ encrypt subcommand.
 When one attribute is missing the object is ignored.
 When a attribute is present multiple times,
 then only the first one is used.
-.It Xo
-.Ic domain_filter :
-.Ar filter
-.Xc
+.It Ic domain_filter : Ar filter
 The filter for domains is used to lookup a domain.
 .Xr smtpd 8
 currently only checks if a domain exists in the table.
-.It Xo
-.Ic domain_attributes :
-.Ar attribute
-.Xc
+.It Ic domain_attributes : Ar attribute
 This attribute is currently not used, because
 .Xr smtpd 8
 does only check if the domain exists.
-.It Xo
-.Ic userinfo_filter :
-.Ar filter
-.Xc
+.It Ic userinfo_filter : Ar filter
 This filter is to lookup the userinfo for an userbase.
 The filter should match exactly one object.
 When the filter match multible objects only the last object returned
@@ -142,36 +112,24 @@ When a attribute is present multiple times,
 then only the first one is used.
 .It Xo
 .Ic userinfo_attributes :
-.Ar uid_attribute, gid_attribute, home_attribute
+.Ar uid_attribute , gid_attribute , home_attribute
 .Xc
 The attributes for uid, gid, and the home directory of the user.
 When one attribute is missing the object is ignored.
 When a attribute is present multiple times,
 then only the first one is used.
-.It Xo
-.Ic mailaddr_filter :
-.Ar filter
-.Xc
+.It Ic mailaddr_filter : Ar filter
 This filter is to match mailaddres.
 .Xr smtpd 8
 currently only checks if a domain exists in the table.
-.It Xo
-.Ic mailaddr_attributes :
-.Ar attribute
-.Xc
+.It Ic mailaddr_attributes : Ar attribute
 This attribute is currently not used, because
 .Xr smtpd 8
 does only check if the mailaddr exists.
-.It Xo
-.Ic mailaddrmap_filter :
-.Ar filter
-.Xc
+.It Ic mailaddrmap_filter : Ar filter
 This filter is to map users to mailaddresses.
 The filter should return all object conaining the mailaddress of the user.
-.It Xo
-.Ic mailaddrmap_attributes :
-.Ar mail_attribute
-.Xc
+.It Ic mailaddrmap_attributes : Ar mail_attribute
 The attribute containe the mailaddresses of the user.
 When the attribute is present multiple times,
 then all attribute values are returned.
