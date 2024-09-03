@@ -1,11 +1,11 @@
-.\" 
+.\"
 .\" Copyright (c) 2013 Eric Faurot <eric@openbsd.org>
 .\" Copyright (c) Philipp Takacs <philipp+openbsd@bureaucracy.de>
-.\" 
+.\"
 .\" Permission to use, copy, modify, and distribute this software for any
 .\" purpose with or without fee is hereby granted, provided that the above
 .\" copyright notice and this permission notice appear in all copies.
-.\" 
+.\"
 .\" THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
 .\" WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
 .\" MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
@@ -13,8 +13,8 @@
 .\" WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
 .\" ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 .\" OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
-.\" 
-.Dd $Mdocdate: May 25 2024 $
+.\"
+.Dd $Mdocdate: September 2 2024 $
 .Dt TABLE_LDAP 5
 .Os
 .Sh NAME
@@ -34,18 +34,16 @@ that are stored in a directory and are provided by an LDAP implementation.
 The table is used by
 .Xr smtpd 8
 when user information such as user-id and/or
-home directory is required for a delivery, when a domain lookup may be required,
-and/or when looking for an alias.
+home directory is required for a delivery, when a domain lookup may be
+required, and/or when looking for an alias.
 .Pp
 A LDAP table consists of a LDAP tree starting from a base.
 Each table lookup will search for the matching objects.
-
 .Sh LDAP TABLE CONFIG FILE
 .Ss COMMON OPTIONS
-.Pp
 .Bl -tag -width Ds
 .It Xo
-.Ic url:
+.Ic url :
 .Ar url
 .Xc
 This is the LDAP url which is used to connect to your LDAP server.
@@ -53,10 +51,8 @@ For example:
 .Bd -literal -offset indent
 url: ldap://ldap.example.com
 .Ed
-.Pp
-
 .It Xo
-.Ic username:
+.Ic username :
 .Ar binddn
 .Xc
 The Distinguished Name which is used to bind to the ldap server.
@@ -64,21 +60,17 @@ For example:
 .Bd -literal -offset indent
 username: cn=smtpd,cn=sysaccounts,cn=etc,dc=example,dc=com
 .Ed
-.Pp
-
 .It Xo
-.Ic password:
+.Ic password :
 .Ar password
 .Xc
 The password for the binddn.
-For example:
+For example :
 .Bd -literal -offset indent
 password: OpenSMTPDRules!
 .Ed
-.Pp
-
 .It Xo
-.Ic basedn:
+.Ic basedn :
 .Ar basedn
 .Xc
 The basedn used for each LDAP search request.
@@ -87,41 +79,34 @@ For example:
 basedn cn=users,cn=accounts,dc=example,dc=com
 .Ed
 .El
-
 .Ss SERVICE OPTIONS
 For each service there are two options:
 A ldap filter and a list of the attributes.
-
-.Pp
 .Bl -tag -width Ds
 .It Xo
-.Ic alias_filter:
+.Ic alias_filter :
 .Ar filter
 .Xc
-This filter is used when the table is used in an alias (or virtual alias) context.
+This filter is used when the table is used in an alias (or virtual
+alias) context.
 The filter should match all entries for this particular alias.
-.Pp
-
 .It Xo
-.Ic alias_attributes:
+.Ic alias_attributes :
 .Ar recipient_atribute
 .Xc
 The attribute which holds the recipients for an alias.
 When the attribute is present multible times,
 then all attribute values are returned.
-.Pp
-
 .It Xo
-.Ic credentials_filter:
+.Ic credentials_filter :
 .Ar filter
 .Xc
 This filter is used to look up credentials for a specific user.
 The filter should match exactly one object.
-When the filter match multible objects only the last object returned by the serer is used.
-.Pp
-
+When the filter match multible objects only the last object returned
+by the serer is used.
 .It Xo
-.Ic credentials_attributes:
+.Ic credentials_attributes :
 .Ar username_attribute, passwordhash_attribute
 .Xc
 The attributes for username and password hash.
@@ -131,107 +116,86 @@ encrypt subcommand.
 When one attribute is missing the object is ignored.
 When a attribute is present multiple times,
 then only the first one is used.
-.Pp
-
 .It Xo
-.Ic domain_filter:
+.Ic domain_filter :
 .Ar filter
 .Xc
 The filter for domains is used to lookup a domain.
 .Xr smtpd 8
 currently only checks if a domain exists in the table.
-.Pp
-
 .It Xo
-.Ic domain_attributes:
+.Ic domain_attributes :
 .Ar attribute
 .Xc
 This attribute is currently not used, because
 .Xr smtpd 8
 does only check if the domain exists.
-.Pp
-
 .It Xo
-.Ic userinfo_filter:
+.Ic userinfo_filter :
 .Ar filter
 .Xc
 This filter is to lookup the userinfo for an userbase.
 The filter should match exactly one object.
-When the filter match multible objects only the last object returned by the server is used.
+When the filter match multible objects only the last object returned
+by the server is used.
 When a attribute is present multiple times,
 then only the first one is used.
-.Pp
-
 .It Xo
-.Ic userinfo_attributes:
+.Ic userinfo_attributes :
 .Ar uid_attribute, gid_attribute, home_attribute
 .Xc
 The attributes for uid, gid, and the home directory of the user.
 When one attribute is missing the object is ignored.
 When a attribute is present multiple times,
 then only the first one is used.
-.Pp
-
 .It Xo
-.Ic mailaddr_filter:
+.Ic mailaddr_filter :
 .Ar filter
 .Xc
 This filter is to match mailaddres.
 .Xr smtpd 8
 currently only checks if a domain exists in the table.
-.Xr 
-.Pp
-
 .It Xo
-.Ic mailaddr_attributes:
+.Ic mailaddr_attributes :
 .Ar attribute
 .Xc
 This attribute is currently not used, because
 .Xr smtpd 8
 does only check if the mailaddr exists.
-.Pp
-
 .It Xo
-.Ic mailaddrmap_filter:
+.Ic mailaddrmap_filter :
 .Ar filter
 .Xc
 This filter is to map users to mailaddresses.
 The filter should return all object conaining the mailaddress of the user.
-.Xr 
-.Pp
-
 .It Xo
-.Ic mailaddrmap_attributes:
+.Ic mailaddrmap_attributes :
 .Ar mail_attribute
 .Xc
 The attribute containe the mailaddresses of the user.
 When the attribute is present multiple times,
 then all attribute values are returned.
 .El
-
 .Sh FORMAT SPECIFIERS
-
-The filter options are designed to allow per request 
+The filter options are designed to allow per request
 Filters allow some specifiers in the attribute values of the filter.
 The following speciers are defined:
-
 .Bl -column %s -offset indent
 .It %u    The key of the request
 .It %h    The name of the table
 .It %%    The literal '%'
 .It %s    Depricated alias for the the key
 .El
-
+.Pp
 When a not defined specier is used the filter will not work.
-
 .Sh EXAMPLES
 .Ss USERS EXAMPLE
 This example show how to use the ldap table for user accounts stored in ldap.
 Mails for local users are deliverd to a lmtp server.
 Most of the example works with a normal ldap schema.
 Only for the smtpPassword a schemaextention is required.
-
-.Ic Pa /etc/mail/ldap_users.conf
+.Pp
+.Pa /etc/mail/ldap_users.conf
 .Bd -literal -offset indent
 url: ldap.example.com
 username: uid=smtpd,cn=services,dc=example,dc=com
@@ -253,8 +217,8 @@ mailaddr_attributes: mail
 mailaddrmap_filter: (&(objectclass=posixaccount)(uid=%s))
 mailaddrmap_attributes: mail
 .Ed
-
-.Ic Pa /etc/mail/smtpd.conf
+.Pp
+.Pa /etc/mail/smtpd.conf
 .Bd -literal -offset indent
 table users ldap:/etc/mail/ldap_users.conf
 
@@ -262,29 +226,28 @@ pki mail.example.com cert "/etc/ssl/mail.example.com.crt"
 pki mail.example.com key "/etc/ssl/private/mail.example.com.key"
 
 listen on egress port 25 tls pki mail.example.com
-listen on egress port 587 tls-require pki mail.example.com senders <users> auth <users>
+listen on egress port 587 tls-require pki mail.example.com \e
+    senders <users> auth <users>
 
 match for rcpt-to <users> action "ldapusers"
 match from auth for any action "relay"
 match from any reject
 
-action "ldapusers" lmtp "lmtp.example.com:1234" userbase <users> virtual <users>
+action "ldapusers" lmtp "lmtp.example.com:1234" userbase <users> \e
+    virtual <users>
 action "relay" relay
 .Ed
-
+.Pp
 With this example a user can auth against the credentials stored in ldap.
 The user can send mails with the addresses specified in ldap as sender.
-Mails for the addresses specified in ldap are maped to the user and deliverd over lmtp.
-
-.Sh BUGS
-
-Currently only check and lookup requests are implemented.
-Fetch and update should also be supported.
-
-The auth request is not suported so the password must be readable by the binddn and formated for smtpd.
-
-Pagination is currently not supported.
-
+Mails for the addresses specified in ldap are maped to the user and
+deliverd over lmtp.
+.Sh SEE ALSO
+.Xr encrypt 1 ,
+.Xr crypt 3 ,
+.Xr smtpd.conf 5 ,
+.Xr smtpctl 8 ,
+.Xr smtpd 8
 .Sh STANDARDS
 .Rs
 .%A J. Sermersheim
@@ -292,7 +255,6 @@ Pagination is currently not supported.
 .%R RFC 4511
 .%T Lightweight Directory Access Protocol (LDAP): The Protocol
 .Re
-
 .Rs
 .%A M. Smith
 .%A T. Howes
@@ -300,10 +262,11 @@ Pagination is currently not supported.
 .%R RFC 4515
 .%T Lightweight Directory Access Protocol (LDAP): String Representation of Search Filters
 .Re
-
-.Sh SEE ALSO
-.Xr smtpd.conf 5 ,
-.Xr smtpctl 8 ,
-.Xr smtpd 8 ,
-.Xr encrypt 1 ,
-.Xr crypt 3
+.Sh BUGS
+Currently only check and lookup requests are implemented.
+Fetch and update should also be supported.
+.Pp
+The auth request is not suported so the password must be readable by the
+binddn and formated for smtpd.
+.Pp
+Pagination is currently not supported.
