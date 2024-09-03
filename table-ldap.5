@@ -64,7 +64,7 @@ password: OpenSMTPDRules!
 The basedn used for each LDAP search request.
 For example:
 .Bd -literal -offset indent
-basedn cn=users,cn=accounts,dc=example,dc=com
+basedn: cn=users,cn=accounts,dc=example,dc=com
 .Ed
 .El
 .Ss SERVICE OPTIONS
@@ -83,7 +83,7 @@ then all attribute values are returned.
 This filter is used to look up credentials for a specific user.
 The filter should match exactly one object.
 When the filter match multiple objects only the last object returned
-by the serer is used.
+by the server is used.
 .It Xo
 .Ic credentials_attributes :
 .Ar username_attribute , passwordhash_attribute
