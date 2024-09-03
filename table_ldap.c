@@ -103,11 +103,11 @@ ldap_connect(const char *addr)
 		goto out;
 	}
 	if (lu.protocol == LDAPI) {
-		log_warnx("ldapi:// is not suported yet");
+		log_warnx("ldapi:// is not supported yet");
 		goto out;
 	}
 	if (lu.protocol == LDAPTLS) {
-		log_warnx("ldap+tls:// is not suported yet");
+		log_warnx("ldap+tls:// is not supported yet");
 		goto out;
 	}
 

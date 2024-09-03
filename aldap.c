@@ -1484,7 +1484,7 @@ parseval(const char *p, size_t len, const struct aldap_filter_ctx *ctx)
 				buffer[i] = '%';
 				j += 2;
 				break;
-			case 's': /* Backwards compability */
+			case 's': /* Backwards compatibility */
 			case 'u': /* username */
 				if (ctx) {
 					paramlen = attach_param(&buffer, &size, i, ctx->username);
@@ -1497,7 +1497,7 @@ parseval(const char *p, size_t len, const struct aldap_filter_ctx *ctx)
 					return NULL;
 				}
 
-				/* Importend
+				/* Important
 				 * the loop increases i (the position on the output) on each iteration
 				 * but this might insert nothing
 				 * so it needs to decrease i by 1 to be on the last written position
@@ -1517,7 +1517,7 @@ parseval(const char *p, size_t len, const struct aldap_filter_ctx *ctx)
 					return NULL;
 				}
 
-				/* Importend
+				/* Important
 				 * the loop increases i (the position on the output) on each iteration
 				 * but this might insert nothing
 				 * so it needs to decrease i by 1 to be on the last written position

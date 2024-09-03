@@ -4,7 +4,7 @@ username: cn=smtpd,cn=sysaccounts,cn=etc,dc=example,dc=com
 password: totalsecure
 basedn: cn=users,cn=accounts,dc=example,dc=com
 
-# filter/atributes for alias / virtual table usage
+# filter/attributes for alias / virtual table usage
 # key will be the user / mailaddr
 # attributes is the destintion. in this example a user, but can also be an other mailaddress
 alias_filter: (&(objectclass=person)(mail=%s))
@@ -18,7 +18,7 @@ credentials_attributes: uid, authPassword
 
 # domain table (list)
 # used in match for domain <ldap>
-# atribute not realy intresting but need to be set
+# attribute not really interesting but need to be set
 domain_filter: (&(objectclass=dnsdomain)(cn=%s))
 domain_attributes: cn
 
@@ -43,6 +43,6 @@ mailaddrmap_attributes: mail
 
 # netaddr info
 # used for "match from src <ldap>
-# propaly not that usefull because the key is the ip address and cidr mapping is not done
+# propaly not that useful because the key is the ip address and cidr mapping is not done
 netaddr_filter: (&(objectclass=host)(ipaddr=%s))
 netaddr_attributes: ipaddr

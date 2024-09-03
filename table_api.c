@@ -61,7 +61,7 @@ static bool		 configured;
 static char		 tablename[128];
 
 /*
- * backword compatibility:
+ * backward compatibility:
  * register all the services since we don't have a clue yet what the
  * table will do
  */
@@ -266,7 +266,7 @@ void
 table_api_update_finish(const char *id)
 {
 	if (!id) {
-		log_warnx("%s: unknow id %s", __func__, id);
+		log_warnx("%s: unknown id %s", __func__, id);
 		return;
 	}
 

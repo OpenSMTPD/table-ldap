@@ -77,12 +77,12 @@ alias) context.
 The filter should match all entries for this particular alias.
 .It Ic alias_attributes : Ar recipient_atribute
 The attribute which holds the recipients for an alias.
-When the attribute is present multible times,
+When the attribute is present multiple times,
 then all attribute values are returned.
 .It Ic credentials_filter : Ar filter
 This filter is used to look up credentials for a specific user.
 The filter should match exactly one object.
-When the filter match multible objects only the last object returned
+When the filter match multiple objects only the last object returned
 by the serer is used.
 .It Xo
 .Ic credentials_attributes :
@@ -106,7 +106,7 @@ does only check if the domain exists.
 .It Ic userinfo_filter : Ar filter
 This filter is to lookup the userinfo for an userbase.
 The filter should match exactly one object.
-When the filter match multible objects only the last object returned
+When the filter match multiple objects only the last object returned
 by the server is used.
 When a attribute is present multiple times,
 then only the first one is used.
@@ -128,9 +128,9 @@ This attribute is currently not used, because
 does only check if the mailaddr exists.
 .It Ic mailaddrmap_filter : Ar filter
 This filter is to map users to mailaddresses.
-The filter should return all object conaining the mailaddress of the user.
+The filter should return all object containing the mailaddress of the user.
 .It Ic mailaddrmap_attributes : Ar mail_attribute
-The attribute containe the mailaddresses of the user.
+The attribute contains the mailaddresses of the user.
 When the attribute is present multiple times,
 then all attribute values are returned.
 .El
@@ -148,7 +148,7 @@ The name of the table.
 The literal
 .Sq % .
 .It Ic %s
-Depricated alias for the the key.
+Deprecated alias for the the key.
 .El
 .Pp
 When a not defined specier is used the filter will not work.
@@ -204,7 +204,7 @@ action "relay" relay
 .Pp
 With this example a user can auth against the credentials stored in ldap.
 The user can send mails with the addresses specified in ldap as sender.
-Mails for the addresses specified in ldap are maped to the user and
+Mails for the addresses specified in ldap are mapped to the user and
 deliverd over lmtp.
 .Sh SEE ALSO
 .Xr encrypt 1 ,
@@ -230,7 +230,7 @@ deliverd over lmtp.
 Currently only check and lookup requests are implemented.
 Fetch and update should also be supported.
 .Pp
-The auth request is not suported so the password must be readable by the
-binddn and formated for smtpd.
+The auth request is not supported so the password must be readable by the
+binddn and formatted for smtpd.
 .Pp
 Pagination is currently not supported.
