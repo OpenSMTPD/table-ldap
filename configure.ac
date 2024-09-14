@@ -23,12 +23,13 @@ AC_SEARCH_LIBS([tls_init], [tls], [], [
 	AC_MSG_ERROR([requires libtls])
 ])
 
-CFLAGS="$CFLAGS -I$srcdir/openbsd-compat"
+AM_CPPFLAGS="-I$srcdir/openbsd-compat"
 
 AC_CHECK_HEADER([sys/tree.h], [], [
-	CFLAGS="$CFLAGS -I$srcdir/openbsd-compat/tree"
+	AM_CPPFLAGS="$AM_CPPFLAGS -I$srcdir/openbsd-compat/tree"
 ])
 
+AC_SUBST([AM_CPPFLAGS])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_FILES([
 	Makefile
