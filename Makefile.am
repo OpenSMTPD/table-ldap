@@ -1,3 +1,5 @@
+SUBDIRS =		openbsd-compat
+
 noinst_PROGRAMS =	table-ldap
 
 table_ldap_SOURCES =	table_ldap.c aldap.c ber.c dict.c log.c table_api.c util.c
