@@ -300,7 +300,7 @@ ldap_handle_response(const char *ldapid, const struct aldap_message *m, struct r
 		}
 		break;
 	default:
-		table_api_error(req->id, req->o, NULL);
+		table_api_error(req->id, req->o, "respones for not implemented operation");
 		dict_pop(&requests, ldapid);
 		table_api_free_request(req);
 	}
@@ -510,7 +510,7 @@ ldap_open(void)
 
 	if (aldap) {
 		while (dict_poproot(&requests, (void **)&r)) {
-			table_api_error(r->id, r->o, NULL);
+			table_api_error(r->id, r->o, "ldap disconnected");
 			free(r);
 		}
 		oldfd = aldap->fd;
@@ -628,7 +628,7 @@ table_ldap_callback(struct request *req)
 	ctx.hostname = req->table;
 	ret = aldap_search(aldap, basedn, LDAP_SCOPE_SUBTREE, q->filter, &ctx, attrs, false, num, 0, NULL);
 	if (ret < 0) {
-		table_api_error(req->id, req->o, NULL);
+		table_api_error(req->id, req->o, "ldap error ... reconnecting");
 		ldap_open();
 		return;
 	}

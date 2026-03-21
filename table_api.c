@@ -125,7 +125,7 @@ fallback_update_handler(const char *id, const char *tname)
 	if (r == 1)
 		table_api_update_finish(id);
 	else
-		table_api_error(id, O_UPDATE, NULL);
+		table_api_error(id, O_UPDATE, "fallback_update_handler failed");
 }
 
 static void
@@ -141,7 +141,7 @@ fallback_check_handler(const char *id, const char *tname, int service, const cha
 	if (r == 0 || r == 1)
 		table_api_check_result(id, r == 1);
 	else
-		table_api_error(id, O_CHECK, NULL);
+		table_api_error(id, O_CHECK, "fallback_check_handler failed");
 }
 
 static void
@@ -161,7 +161,7 @@ fallback_lookup_handler(const char *id, const char *tname, int service, const ch
 	if (r == 1 || r == 0)
 		table_api_lookup_finish(id);
 	else
-		table_api_error(id, O_LOOKUP, NULL);
+		table_api_error(id, O_LOOKUP, "fallback_lookup_handler failed");
 }
 
 static void
@@ -183,7 +183,7 @@ fallback_fetch_handler(const char *id, const char *tname, int service)
 		table_api_fetch_result(id, NULL);
 		break;
 	default:
-		table_api_error(id, O_FETCH, NULL);
+		table_api_error(id, O_FETCH, "fallback_fetch_handler failed");
 	}
 }
 
