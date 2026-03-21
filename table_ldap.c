@@ -223,6 +223,7 @@ ldap_lookup_entry(const struct request *req, const struct aldap_message *m)
 		if (strlcat(tmp, attr->str[1].ostr_val, sizeof(tmp)) > sizeof(tmp))
 			break;
 		table_api_lookup_result(req->id, req->s, tmp);
+		aldap_free_attr(attr);
 		break;
 	case K_USERINFO:
 		if (aldap_match_attr(m, q->attrs[0], &attr) == -1)
@@ -250,13 +251,12 @@ ldap_lookup_entry(const struct request *req, const struct aldap_message *m)
 		if (strlcat(tmp, attr->str[1].ostr_val, sizeof(tmp)) > sizeof(tmp))
 			break;
 		table_api_lookup_result(req->id, req->s, tmp);
+		aldap_free_attr(attr);
 		break;
 	default:
 		log_warnx("unhandled service");
 		break;
 	}
-
-	aldap_free_attr(attr);
 }
 
 static void
