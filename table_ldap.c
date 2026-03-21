@@ -502,8 +502,13 @@ ldap_open(void)
 {
 	struct aldap_message	*amsg = NULL;
 	int			 oldfd = 0;
+	struct request 		*r;
 
 	if (aldap) {
+		while (dict_poproot(&requests, (void **)&r)) {
+			table_api_error(r->id, r->o, NULL);
+			free(r);
+		}
 		oldfd = aldap->fd;
 		aldap_close(aldap);
 		log_info("info: table-ldap: closed previous connection");
