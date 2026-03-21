@@ -97,6 +97,7 @@ ldap_connect(const char *addr)
 	struct addrinfo	 hints, *res0, *res;
 	int		 error, fd = -1;
 	int		 flags;
+	int		 keepalive = 1;
 
 	if (aldap_parse_url(addr, &lu) != 1) {
 		log_warnx("warn: ldap_parse_url fail");
@@ -132,6 +133,8 @@ ldap_connect(const char *addr)
 
 		if (connect(fd, res->ai_addr, res->ai_addrlen) == 0) {
 			ldap = aldap_init(fd);
+			setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE,
+			    &keepalive, sizeof(keepalive));
 			break;
 		}
 
