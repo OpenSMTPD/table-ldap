@@ -298,6 +298,7 @@ ldap_handle_response(const char *ldapid, const struct aldap_message *m, struct r
 			table_api_free_request(req);
 			break;
 		}
+		break;
 	default:
 		table_api_error(req->id, req->o, NULL);
 		dict_pop(&requests, ldapid);
